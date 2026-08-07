@@ -60,6 +60,12 @@ type LyricsState = {
     
 
     lyrics: LyricLine[];
+    hasStartedTiming: boolean;
+    isUserEditing: boolean;
+
+    startTiming: () => void;
+    startEditing: () => void;
+        resetEditorState:()=>void; // thêm dòng này
 
     selectedLineId: string | null;
 
@@ -105,8 +111,11 @@ updateLyrics: (
         id: string
     ) => void;
 
-    resetSync: () => void;
+resetSync: () => void;
 
+resetAllTiming: () => void;
+
+resetLastTiming: () => void;
 };
 export const defaultLyricStyle: LyricStyle = {
 
@@ -136,27 +145,43 @@ export const useLyricsStore =
 create<LyricsState>((set) => ({
 
     lyrics: [],
+     hasStartedTiming:false,
+    isUserEditing:false,
+    startTiming:()=>{
 
+        set({
+            hasStartedTiming:true
+        });
+
+    },
+startEditing:()=>{
+
+    set({
+        isUserEditing:true
+    });
+
+},
     selectedLineId: null,
 
     selectedWordId: null,
 
-    setLyrics: (data) => {
+setLyrics: (data) => {
 
-        set({
+    set({
+        lyrics:data,
+        isUserEditing:false
+    });
 
-            lyrics: data
-
-        });
-
-    },
+},
 updateLyrics: (updater) => {
 
-    set(state => ({
+set(state => ({
 
-        lyrics: updater(state.lyrics)
+    lyrics: updater(state.lyrics),
 
-    }));
+    isUserEditing:true
+
+}));
 
 },
     selectLine: (id) => {
@@ -178,7 +203,17 @@ updateLyrics: (updater) => {
         });
 
     },
+resetEditorState:()=>{
 
+    set({
+        lyrics:[],
+        isUserEditing:false,
+        hasStartedTiming:false,
+        selectedLineId:null,
+        selectedWordId:null
+    });
+
+},
 updateLine: (id, data) => {
 
     set(state => ({
@@ -186,9 +221,7 @@ updateLine: (id, data) => {
         lyrics: state.lyrics.map(line => {
 
             if (line.id !== id) {
-
                 return line;
-
             }
 
             return {
@@ -209,64 +242,68 @@ updateLine: (id, data) => {
 
             };
 
-        })
+        }),
+
+        isUserEditing:true
 
     }));
 
 },
 
-    updateWord: (
+updateWord: (
 
-        lineId,
+    lineId,
 
-        wordId,
+    wordId,
 
-        data
+    data
 
-    ) => {
+) => {
 
-        set(state => ({
+    set(state => ({
 
-            lyrics:
+        lyrics:
 
-                state.lyrics.map(line => {
+            state.lyrics.map(line => {
 
-                    if (line.id !== lineId) {
+                if(line.id !== lineId){
 
-                        return line;
+                    return line;
 
-                    }
+                }
 
-                    return {
 
-                        ...line,
+                return {
 
-                        words:
+                    ...line,
 
-                            line.words.map(word =>
+                    words:
 
-                                word.id === wordId
+                        line.words.map(word =>
 
-                                    ? {
+                            word.id === wordId
 
-                                        ...word,
+                            ? {
 
-                                        ...data
+                                ...word,
 
-                                    }
+                                ...data
 
-                                    : word
+                            }
 
-                            )
+                            : word
 
-                    };
+                        )
 
-                })
+                };
 
-        }));
+            }),
 
-    },
+        isUserEditing:true
 
+    }));
+
+},
     addWordToLine: (
 
         lineId,
@@ -301,7 +338,8 @@ updateLine: (id, data) => {
 
                     };
 
-                })
+                }),
+                isUserEditing:true
 
         }));
 
@@ -366,53 +404,44 @@ updateLine: (id, data) => {
 
             );
 
-            return {
+         return {
 
-                lyrics,
+    lyrics,
 
-                selectedLineId:
+    isUserEditing:true,
 
-                    newLine.id,
+    selectedLineId:newLine.id,
 
-                selectedWordId:
+    selectedWordId:null
 
-                    null
-
-            };
+};
 
         });
 
     },
 
-    deleteLine: (id) => {
+ deleteLine: (id) => {
 
-        set(state => ({
+    set(state => ({
 
-            lyrics:
+        lyrics:
+            state.lyrics.filter(
+                line =>
+                    line.id !== id
+            ),
 
-                state.lyrics.filter(
+        isUserEditing:true,
 
-                    line =>
+        selectedLineId:
+            state.selectedLineId === id
+                ? null
+                : state.selectedLineId,
 
-                        line.id !== id
+        selectedWordId:null
 
-                ),
+    }));
 
-            selectedLineId:
-
-                state.selectedLineId === id
-
-                    ? null
-
-                    : state.selectedLineId,
-
-            selectedWordId:
-
-                null
-
-        }));
-
-    },
+},
 
 resetSync: () => {
     set(state => ({
@@ -425,5 +454,80 @@ resetSync: () => {
         }))
     }));
 },
+resetAllTiming: () => {
 
+    set(state => ({
+        lyrics:
+            state.lyrics.map(line => ({
+                ...line,
+
+                words:
+                    line.words.map(word => ({
+                        ...word,
+                        start: 0,
+                        end: 0,
+                        synced: false
+                    }))
+
+            }))
+    }));
+
+},
+resetLastTiming: () => {
+
+    set(state => {
+
+        const lyrics = state.lyrics.map(line => ({
+
+            ...line,
+
+            words: [...line.words]
+
+        }));
+
+        let lastLineIndex = -1;
+        let lastWordIndex = -1;
+
+        lyrics.forEach((line, lineIndex) => {
+
+            line.words.forEach((word, wordIndex) => {
+
+                if (word.synced) {
+
+                    lastLineIndex = lineIndex;
+                    lastWordIndex = wordIndex;
+
+                }
+
+            });
+
+        });
+
+        if (lastLineIndex === -1) {
+
+            return { lyrics };
+
+        }
+
+        lyrics[lastLineIndex].words[lastWordIndex] = {
+
+            ...lyrics[lastLineIndex].words[lastWordIndex],
+
+            start: 0,
+
+            end: 0,
+
+            synced: false
+
+        };
+
+        return {
+
+            lyrics
+
+        };
+
+    });
+
+},
 }));

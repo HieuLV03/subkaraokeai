@@ -20,12 +20,13 @@ import {
 
 export default function App() {
 
-  useEffect(() => {
+useEffect(() => {
 
-    registerAIListener();
+    const cleanup = registerAIListener();
 
-  }, []);
+    return cleanup;
 
+}, []);
   return (
 
     <MainLayout>

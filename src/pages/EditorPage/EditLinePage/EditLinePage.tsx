@@ -9,9 +9,17 @@ export default function EditLinePage() {
         (state) => state.setWorkspace
     );
 
-    const resetSync = useLyricsStore(
-        (state) => state.resetSync
-    );
+ const resetAllTiming = useLyricsStore(
+    state => state.resetAllTiming
+);
+
+const hasStartedTiming = useLyricsStore(
+    state => state.hasStartedTiming
+);
+
+const startTiming = useLyricsStore(
+    state => state.startTiming
+);
 
     const {
         lyrics,
@@ -274,16 +282,24 @@ export default function EditLinePage() {
 
             {/* FOOTER */}
             <div className="edit-line-footer">
-                <button
-                    className="edit-line-next"
-                    onClick={() => {
-                        // không cần setLyrics nữa vì đã lưu realtime
-                        resetSync();
-                        setWorkspace("timing");
-                    }}
-                >
-                    Next →
-                </button>
+       <button
+className="edit-line-next"
+onClick={() => {
+
+    if(!hasStartedTiming){
+
+        resetAllTiming();
+
+        startTiming();
+
+    }
+
+    setWorkspace("timing");
+
+}}
+>
+Next →
+</button>
             </div>
         </div>
     );

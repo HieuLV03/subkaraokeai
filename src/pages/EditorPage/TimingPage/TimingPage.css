@@ -45,7 +45,21 @@
     padding:18px;
 
 }
+.timing-actions{
+    display:flex;
+    gap:12px;
+    align-items:center;
+}
 
+
+.reset{
+    background:#f59e0b;
+}
+
+
+.reset-all{
+    background:#dc2626;
+}
 .timing-line-title{
 
     font-size:22px;

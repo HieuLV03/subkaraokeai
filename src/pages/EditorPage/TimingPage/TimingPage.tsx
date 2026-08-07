@@ -4,6 +4,13 @@ import { useLyricsStore } from "@/stores/lyrics.store";
 import "./TimingPage.css";
 
 export default function TimingPage() {
+    const resetAllTiming = useLyricsStore(
+    state => state.resetAllTiming
+);
+
+const resetLastTiming = useLyricsStore(
+    state => state.resetLastTiming
+);
 const setWorkspace = useEditorStore(
     state => state.setWorkspace
 );
@@ -226,24 +233,48 @@ const setWorkspace = useEditorStore(
 
         </div>
 
-        <div className="timing-footer">
+     <div className="timing-footer">
 
-            <button
-                className="timing-btn"
-                onClick={() => setWorkspace("line")}
-            >
-                ← Previous
-            </button>
+    <button
+        className="timing-btn"
+        onClick={() => setWorkspace("line")}
+    >
+        ← Previous
+    </button>
 
-            <button
-                className="timing-btn"
-                onClick={() => setWorkspace("style")}
-            >
-                Next →
-            </button>
 
-        </div>
+    <div className="timing-actions">
 
+        <button
+            className="timing-btn reset"
+            onClick={() => {
+                resetLastTiming();
+            }}
+        >
+            Reset Last
+        </button>
+
+
+        <button
+            className="timing-btn reset-all"
+            onClick={() => {
+                resetAllTiming();
+            }}
+        >
+            Reset All
+        </button>
+
+
+        <button
+            className="timing-btn"
+            onClick={() => setWorkspace("style")}
+        >
+            Next →
+        </button>
+
+    </div>
+
+</div>
     </div>
 
 );

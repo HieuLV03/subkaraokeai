@@ -38,136 +38,100 @@ interface WhisperSegment {
 
 
 
-
 export function registerAIListener(){
-
 
     console.log(
         "REGISTER AI LISTENER"
     );
 
 
-
-    window.electronAPI.on(
-
-        "lyrics-result",
-
-        (
-
-            data: WhisperSegment[]
-
-        )=>{
+    const handler = (
+        data: WhisperSegment[]
+    )=>{
 
 
-            console.log(
-                "RAW LYRICS:",
-                data
-            );
+        console.log(
+            "RAW LYRICS:",
+            data
+        );
 
 
+        const lines: LyricLine[] = data.map(
+            (
+                segment,
+                index
+            )=>{
 
-            const lines: LyricLine[] = data.map(
+                return {
 
-                (
+                    id:String(index),
 
-                    segment,
+                    start:Number(
+                        segment.words?.[0]?.start
+                        ?? segment.start
+                    ),
 
-                    index
+                    end:Number(
+                        segment.words?.[
+                            segment.words.length - 1
+                        ]?.end
+                        ?? segment.end
+                    ),
 
-                )=>{
+                    text:segment.text ?? "",
 
+                    words:
+                    segment.words?.map(
+                        (
+                            item,
+                            wordIndex
+                        )=>({
 
-                    return {
+                            id:`${index}-${wordIndex}`,
 
+                            word:String(item.word).trim(),
 
-                        id:
+                            start:Number(item.start),
 
-                        String(index),
+                            end:Number(item.end),
 
+                            synced:false
 
+                        })
+                    ) ?? []
 
-           start:
-    Number(
-        segment.words?.[0]?.start 
-        ?? segment.start
-    ),
+                };
 
-
-end:
-    Number(
-        segment.words?.[
-            segment.words.length - 1
-        ]?.end
-        ?? segment.end
-    ),
-
-
-                        text:
-
-                        segment.text ?? "",
-
-words:
-    segment.words?.map((item, wordIndex) => ({
-
-        id: `${index}-${wordIndex}`,
-
-        word: String(item.word).trim(),
-
-        start: Number(item.start),
-
-        end: Number(item.end),
-
-        synced: false
-
-    })) ?? []
+            }
+        );
 
 
-                    };
+        const store =
+        useLyricsStore.getState();
 
 
-                }
-
-            );
-
-
-
+        if(store.isUserEditing){
 
             console.log(
-                "CONVERTED LINES:",
-                lines
+                "BLOCK OLD AI LYRICS"
             );
 
-
-
-            console.log(
-                "FIRST LINE:",
-                lines[0]
-            );
-
-
-
-            console.log(
-                "FIRST WORD:",
-                lines[0]?.words[0]
-            );
-
-
-
-            useLyricsStore
-
-            .getState()
-
-            .setLyrics(
-
-                lines
-
-            );
-
-
+            return;
 
         }
 
+
+        store.setLyrics(lines);
+
+    };
+
+
+const cleanup =
+    window.electronAPI.on(
+        "lyrics-result",
+        handler
     );
 
 
+return cleanup;
 }

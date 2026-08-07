@@ -1,241 +1,253 @@
 "use client";
 
-import {
-    useEffect,
-    useRef
-} from "react";
+import { useEffect, useRef } from "react";
 
-import {
-    useEditorStore
-} from "@/stores/editor.store";
+import { useEditorStore } from "@/stores/editor.store";
+import { useLyricsStore } from "@/stores/lyrics.store";
 
-import {
-    useLyricsStore
-} from "@/stores/lyrics.store";
-
-
-export default function SyncRecorder(){
-
-
-    const holding =
-        useRef(false);
-
-
-    const startTime =
-        useRef(0);
-
-
+export default function SyncRecorder() {
 
     const audio =
         useEditorStore(
             state => state.audioRef
         );
 
+    const holding =
+        useRef(false);
 
+    const raf =
+        useRef<number | null>(null);
 
-    useEffect(()=>{
+    const startTime =
+        useRef(0);
 
+    useEffect(() => {
 
-        function keyDown(
-            e:KeyboardEvent
-        ){
+        function updatePreview() {
 
+            if (!holding.current) return;
 
-            if(
-                e.code !== "Space"
-            )
-                return;
-
-
-            if(
-                holding.current
-            )
-                return;
-
-
-
-            e.preventDefault();
-
-
-
-            if(!audio)
-                return;
-
-
+            if (!audio) return;
 
             const state =
                 useLyricsStore.getState();
-
-const line = state.lyrics.find(
-    line =>
-        (line.words ?? []).some(
-            word => !word.synced
-        )
-);
-
-
-            if(!line)
-                return;
-
-
-
-            holding.current = true;
-
-
-
-            startTime.current =
-                audio.currentTime;
-
-
-
-            console.log(
-                "SYNC START",
-                startTime.current
-            );
-
-
-        }
-
-
-
-
-        function keyUp(
-            e:KeyboardEvent
-        ){
-
-
-            if(
-                e.code !== "Space"
-            )
-                return;
-
-
-            if(
-                !holding.current
-            )
-                return;
-
-
-
-            e.preventDefault();
-
-
-
-            if(!audio)
-                return;
-
-
-
-            const end =
-                audio.currentTime;
-
-
-
-            const state =
-                useLyricsStore.getState();
-
-
 
             const line =
                 state.lyrics.find(
                     line =>
-                    line.words.some(
-                        word =>
-                        !word.synced
-                    )
+                        line.words.some(
+                            word => !word.synced
+                        )
                 );
 
+            if (!line) return;
 
+            const word =
+                line.words.find(
+                    word => !word.synced
+                );
 
-            if(!line)
-                return;
-
-
-        const word =
-    line.words?.find(
-        word => !word.synced
-    );
-
-            if(!word)
-                return;
-
-
+            if (!word) return;
 
             state.updateWord(
-
                 line.id,
-
                 word.id,
-
                 {
+                    end: audio.currentTime
+                }
+            );
 
+            raf.current =
+                requestAnimationFrame(
+                    updatePreview
+                );
+
+        }
+
+        function keyDown(
+            e: KeyboardEvent
+        ) {
+
+            if (
+                e.code !== "Space"
+            )
+                return;
+
+            if (
+                holding.current
+            )
+                return;
+
+            e.preventDefault();
+
+            if (!audio)
+                return;
+
+            const state =
+                useLyricsStore.getState();
+
+            const line =
+                state.lyrics.find(
+                    line =>
+                        line.words.some(
+                            word => !word.synced
+                        )
+                );
+
+            if (!line)
+                return;
+
+            const word =
+                line.words.find(
+                    word => !word.synced
+                );
+
+            if (!word)
+                return;
+
+            holding.current = true;
+
+            startTime.current =
+                audio.currentTime;
+
+            state.updateWord(
+                line.id,
+                word.id,
+                {
                     start:
-                    startTime.current,
+                        startTime.current,
 
+                    end:
+                        startTime.current,
+
+                    synced: false
+                }
+            );
+
+            updatePreview();
+
+            console.log(
+                "SYNC START",
+                word.word,
+                startTime.current
+            );
+
+        }
+
+        function keyUp(
+            e: KeyboardEvent
+        ) {
+
+            if (
+                e.code !== "Space"
+            )
+                return;
+
+            if (
+                !holding.current
+            )
+                return;
+
+            e.preventDefault();
+
+            if (!audio)
+                return;
+
+            holding.current = false;
+
+            if (raf.current) {
+
+                cancelAnimationFrame(
+                    raf.current
+                );
+
+                raf.current = null;
+
+            }
+
+            const end =
+                audio.currentTime;
+
+            const state =
+                useLyricsStore.getState();
+
+            const line =
+                state.lyrics.find(
+                    line =>
+                        line.words.some(
+                            word => !word.synced
+                        )
+                );
+
+            if (!line)
+                return;
+
+            const word =
+                line.words.find(
+                    word => !word.synced
+                );
+
+            if (!word)
+                return;
+
+            state.updateWord(
+                line.id,
+                word.id,
+                {
+                    start:
+                        startTime.current,
 
                     end,
 
-
-                    synced:true
-
+                    synced: true
                 }
-
             );
 
-
-
             console.log(
-                "SYNC WORD",
+                "SYNC END",
                 {
-                    word:word.word,
-                    start:startTime.current,
+                    word: word.word,
+                    start:
+                        startTime.current,
                     end
                 }
             );
 
-
-
-            holding.current=false;
-
-
         }
-
-
 
         window.addEventListener(
             "keydown",
             keyDown
         );
 
-
         window.addEventListener(
             "keyup",
             keyUp
         );
 
-
-
-        return ()=>{
-
+        return () => {
 
             window.removeEventListener(
                 "keydown",
                 keyDown
             );
 
-
             window.removeEventListener(
                 "keyup",
                 keyUp
             );
 
+            if (raf.current) {
+
+                cancelAnimationFrame(
+                    raf.current
+                );
+
+            }
 
         };
 
-
-    },[audio]);
-
-
+    }, [audio]);
 
     return null;
 
