@@ -166,12 +166,16 @@ startEditing:()=>{
     selectedWordId: null,
 
 setLyrics: (data) => {
-
     set({
-        lyrics:data,
-        isUserEditing:false
+        lyrics: data.map(line => ({
+            ...line,
+            style: {
+                ...defaultLyricStyle,
+                ...line.style
+            }
+        })),
+        isUserEditing: false
     });
-
 },
 updateLyrics: (updater) => {
 

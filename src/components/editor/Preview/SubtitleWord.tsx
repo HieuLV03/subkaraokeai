@@ -58,7 +58,7 @@ export default function SubtitleWord({
                 className="subtitle-normal"
                 style={{ color }}
             >
-                {word.word}&nbsp;
+                {word.word ?? word.text}&nbsp;
             </span>
 
             <span
@@ -68,7 +68,7 @@ export default function SubtitleWord({
                     color: activeColor
                 }}
             >
-                {word.word}&nbsp;
+                {word.word ?? word.text}&nbsp;
             </span>
 
         </span>

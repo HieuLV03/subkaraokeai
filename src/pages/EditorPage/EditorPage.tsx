@@ -15,15 +15,11 @@ import TimingPage from "./TimingPage/TimingPage";
 import StylePage from "./StylePage/StylePage";
 
 export default function EditorPage() {
+    console.count("EditorPage render");
 
-    const resetSync = useLyricsStore(
-        state => state.resetSync
-    );
-
-    const {
-        currentWorkspace
-    } = useEditorStore();
-
+ const currentWorkspace = useEditorStore(
+    state => state.currentWorkspace
+);
     return (
 
         <div className="editor-page">

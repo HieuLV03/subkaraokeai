@@ -7,7 +7,7 @@ export default function SubtitleLine({
     line,
     currentTime,
     color,
-    activeColor
+    activeColor,
 }: any) {
 
     if (!line?.words) {
@@ -16,9 +16,7 @@ export default function SubtitleLine({
 
     return (
         <div className="subtitle-line">
-
             {line.words.map((word: any) => (
-
                 <SubtitleWord
                     key={word.id}
                     word={word}
@@ -26,9 +24,7 @@ export default function SubtitleLine({
                     color={color}
                     activeColor={activeColor}
                 />
-
             ))}
-
         </div>
     );
 }

@@ -4,6 +4,8 @@ import { useLyricsStore } from "@/stores/lyrics.store";
 import "./TimingPage.css";
 
 export default function TimingPage() {
+        console.count("TimingPage render");
+
     const resetAllTiming = useLyricsStore(
     state => state.resetAllTiming
 );
