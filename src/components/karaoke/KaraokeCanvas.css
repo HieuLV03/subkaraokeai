@@ -1,0 +1,34 @@
+.karaoke-canvas {
+
+    position:relative;
+
+    width:100%;
+
+    height:400px;
+
+    overflow:hidden;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    pointer-events:none;
+
+}
+
+.subtitle-line {
+
+    pointer-events:none;
+
+}
+.waiting-text {
+
+    color:#aaa;
+
+    font-size:30px;
+
+}
+
+

@@ -1,0 +1,64 @@
+.subtitle-line {
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+    
+
+}
+
+
+
+.subtitle-word {
+
+    position:relative;
+
+    display:inline-block;
+
+    margin-right:8px;
+
+    white-space:nowrap;
+
+    font-size:40px;
+
+    font-weight:700;
+
+}
+
+
+
+.subtitle-normal {
+
+    position:relative;
+
+    display:block;
+
+    z-index:1;
+
+}
+
+
+
+.subtitle-fill {
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
+
+    height:100%;
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    z-index:2;
+
+    pointer-events:none;
+
+}

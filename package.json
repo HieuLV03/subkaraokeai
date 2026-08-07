@@ -1,0 +1,72 @@
+{
+  "name": "sub-karaoke-ai",
+  "productName": "SubKaraokeAI",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "start": "start \"\" \".\\release\\win-unpacked\\SubKaraokeAI.exe\"",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "electron-log": "^5.4.4",
+    "express": "^5.2.1",
+    "mime": "^4.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-rnd": "^10.5.3",
+    "react-router-dom": "^7.18.1",
+    "wavesurfer.js": "^7.12.11",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "vite-plugin-electron": "^0.28.6",
+    "vite-plugin-electron-renderer": "^0.14.5"
+  },
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.subkaraokeai.app",
+    "productName": "SubKaraokeAI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "python",
+        "to": "python"
+      },
+      {
+        "from": "tools",
+        "to": "tools"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "icon": "public/icon.ico"
+    }
+  }
+}

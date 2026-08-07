@@ -1,0 +1,429 @@
+import { create } from "zustand";
+
+export interface LyricWord {
+
+    id: string;
+
+    word: string;
+
+    start: number;
+
+    end: number;
+
+    synced: boolean;
+
+}
+
+export interface LyricStyle {
+
+    fontFamily: string;
+
+    fontSize: number;
+
+    color: string;
+
+    activeColor: string;
+
+    outline: string;
+
+    outlineWidth: number;
+
+    shadow: boolean;
+
+    x: number;
+
+    y: number;
+
+    align:
+        | "left"
+        | "center"
+        | "right";
+
+}
+
+export interface LyricLine {
+
+    id: string;
+
+    start: number;
+
+    end: number;
+
+    text: string;
+
+    words: LyricWord[];
+    style?: LyricStyle;
+
+}
+
+type LyricsState = {
+    
+
+    lyrics: LyricLine[];
+
+    selectedLineId: string | null;
+
+    selectedWordId: string | null;
+
+    setLyrics: (
+        data: LyricLine[]
+    ) => void;
+updateLyrics: (
+    updater: (
+        lyrics: LyricLine[]
+    ) => LyricLine[]
+) => void;
+    selectLine: (
+        id: string | null
+    ) => void;
+
+    selectWord: (
+        id: string | null
+    ) => void;
+
+    updateLine: (
+        id: string,
+        data: Partial<LyricLine>
+    ) => void;
+
+    updateWord: (
+        lineId: string,
+        wordId: string,
+        data: Partial<LyricWord>
+    ) => void;
+
+    addWordToLine: (
+        lineId: string,
+        word: LyricWord
+    ) => void;
+
+    addLineAfter: (
+        id: string
+    ) => void;
+
+    deleteLine: (
+        id: string
+    ) => void;
+
+    resetSync: () => void;
+
+};
+export const defaultLyricStyle: LyricStyle = {
+
+    fontFamily: "Arial",
+
+    fontSize: 40,
+
+    color: "#ffffff",
+
+    activeColor: "#00ff66",
+
+    outline: "#000000",
+
+    outlineWidth: 2,
+
+    shadow: true,
+
+    x: 200,
+
+    y: 350,
+
+    align: "center"
+
+};
+export const useLyricsStore =
+
+create<LyricsState>((set) => ({
+
+    lyrics: [],
+
+    selectedLineId: null,
+
+    selectedWordId: null,
+
+    setLyrics: (data) => {
+
+        set({
+
+            lyrics: data
+
+        });
+
+    },
+updateLyrics: (updater) => {
+
+    set(state => ({
+
+        lyrics: updater(state.lyrics)
+
+    }));
+
+},
+    selectLine: (id) => {
+
+        set({
+
+            selectedLineId: id
+
+        });
+
+    },
+
+    selectWord: (id) => {
+
+        set({
+
+            selectedWordId: id
+
+        });
+
+    },
+
+updateLine: (id, data) => {
+
+    set(state => ({
+
+        lyrics: state.lyrics.map(line => {
+
+            if (line.id !== id) {
+
+                return line;
+
+            }
+
+            return {
+
+                ...line,
+
+                ...data,
+
+                style: {
+
+                    ...defaultLyricStyle,
+
+                    ...line.style,
+
+                    ...data.style
+
+                }
+
+            };
+
+        })
+
+    }));
+
+},
+
+    updateWord: (
+
+        lineId,
+
+        wordId,
+
+        data
+
+    ) => {
+
+        set(state => ({
+
+            lyrics:
+
+                state.lyrics.map(line => {
+
+                    if (line.id !== lineId) {
+
+                        return line;
+
+                    }
+
+                    return {
+
+                        ...line,
+
+                        words:
+
+                            line.words.map(word =>
+
+                                word.id === wordId
+
+                                    ? {
+
+                                        ...word,
+
+                                        ...data
+
+                                    }
+
+                                    : word
+
+                            )
+
+                    };
+
+                })
+
+        }));
+
+    },
+
+    addWordToLine: (
+
+        lineId,
+
+        word
+
+    ) => {
+
+        set(state => ({
+
+            lyrics:
+
+                state.lyrics.map(line => {
+
+                    if (line.id !== lineId) {
+
+                        return line;
+
+                    }
+
+                    return {
+
+                        ...line,
+
+                        words: [
+
+                            ...line.words,
+
+                            word
+
+                        ]
+
+                    };
+
+                })
+
+        }));
+
+    },
+
+    addLineAfter: (id) => {
+
+        set(state => {
+
+            const index =
+
+                state.lyrics.findIndex(
+
+                    line =>
+
+                        line.id === id
+
+                );
+
+            if (index === -1) {
+
+                return state;
+
+            }
+
+            const current =
+
+                state.lyrics[index];
+
+      const newLine: LyricLine = {
+
+    id: crypto.randomUUID(),
+
+    start: current.end,
+
+    end: current.end + 1,
+
+    text: "New line",
+
+    words: [],
+
+    style: {
+
+        ...defaultLyricStyle
+
+    }
+
+};
+            const lyrics = [
+
+                ...state.lyrics
+
+            ];
+
+            lyrics.splice(
+
+                index + 1,
+
+                0,
+
+                newLine
+
+            );
+
+            return {
+
+                lyrics,
+
+                selectedLineId:
+
+                    newLine.id,
+
+                selectedWordId:
+
+                    null
+
+            };
+
+        });
+
+    },
+
+    deleteLine: (id) => {
+
+        set(state => ({
+
+            lyrics:
+
+                state.lyrics.filter(
+
+                    line =>
+
+                        line.id !== id
+
+                ),
+
+            selectedLineId:
+
+                state.selectedLineId === id
+
+                    ? null
+
+                    : state.selectedLineId,
+
+            selectedWordId:
+
+                null
+
+        }));
+
+    },
+
+resetSync: () => {
+    set(state => ({
+        lyrics: state.lyrics.map(line => ({
+            ...line,
+            words: line.words.map(word => ({
+                ...word,
+                synced: false          // chỉ reset flag này
+            }))
+        }))
+    }));
+},
+
+}));

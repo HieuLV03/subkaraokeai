@@ -1,0 +1,173 @@
+.editor-toolbar{
+
+    height:48px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:0 16px;
+
+    background:#222;
+
+    border-bottom:1px solid #333;
+
+    flex-shrink:0;
+
+}
+
+.editor-toolbar button{
+
+    background:#333;
+
+    color:white;
+
+    border:none;
+
+    padding:8px 18px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+
+}
+
+.editor-toolbar button.active{
+
+    background:#3b82f6;
+
+}
+.editor-page{
+
+    width:100%;
+
+    height:100vh;
+
+    display:flex;
+
+    flex-direction:column;
+
+    background:#1b1b1b;
+
+    overflow:hidden;
+
+}
+
+
+
+
+/* PREVIEW + INSPECTOR */
+
+.editor-top{
+
+    height:40%;
+
+    display:flex;
+
+    flex-shrink:0;
+
+}
+
+
+
+
+.editor-preview{
+
+    flex:1;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#111;
+
+}
+
+
+
+
+
+.editor-inspector{
+
+    width:340px;
+
+    background:#242424;
+
+    border-left:1px solid #333;
+
+    overflow:auto;
+
+}
+
+
+
+
+
+
+
+/* AUDIO */
+
+.editor-audio{
+
+
+    flex-shrink:0;
+
+
+    background:#181818;
+
+
+}
+
+
+
+
+
+
+
+/* LYRICS */
+
+.editor-lyrics{
+
+
+    flex:1;
+
+
+    min-height:0;
+
+
+    overflow-y:auto;
+
+
+    background:#202020;
+
+
+}
+
+
+
+
+
+
+
+/* TIMELINE */
+
+.editor-timeline{
+
+
+    height:180px;
+
+
+    flex-shrink:0;
+
+
+    background:#161616;
+
+
+    border-top:1px solid #333;
+
+
+}

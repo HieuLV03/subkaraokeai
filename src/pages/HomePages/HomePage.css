@@ -1,0 +1,47 @@
+.preview {
+  width: 100%;
+  max-width: 1000px;
+  margin: 24px auto;
+}
+
+.preview-inner {
+  aspect-ratio: 16 / 9;
+  border: 2px solid #333;
+  border-radius: 10px;
+  background: #111;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.waveform {
+  height: 120px;
+  margin-top: 20px;
+  border: 1px solid #333;
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lyrics {
+  min-height: 180px;
+  margin-top: 20px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.dashboard {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+.card {
+  padding: 14px 24px;
+  cursor: pointer;
+}

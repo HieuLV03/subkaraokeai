@@ -1,0 +1,129 @@
+
+
+
+
+.edit-line-card{
+
+    background:#1F2937;
+
+    border:1px solid #374151;
+
+    border-radius:12px;
+
+    padding:16px;
+
+}
+
+.edit-line-time{
+
+    display:flex;
+
+    gap:15px;
+
+    align-items:center;
+
+    margin-bottom:15px;
+
+}
+
+.edit-line-input{
+
+    width:90px;
+
+    padding:6px;
+
+    background:#111827;
+
+    color:white;
+
+    border:1px solid #374151;
+
+    border-radius:6px;
+
+}
+
+.edit-line-textarea{
+
+    width:100%;
+
+    min-height:70px;
+
+    background:transparent;
+
+    border:none;
+
+    outline:none;
+
+    color:white;
+
+    font-size:24px;
+
+    resize:vertical;
+
+}
+
+.edit-line-bottom{
+
+    margin-top:10px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+}
+
+.edit-line-delete{
+
+    background:#DC2626;
+
+    color:white;
+
+    border:none;
+
+    padding:6px 12px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+
+}
+.edit-line-page{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    background:#111827;
+    color:#fff;
+    overflow:hidden;
+}
+
+.edit-line-content{
+    flex:1;
+    overflow-y:auto;
+    padding:24px;
+    padding-bottom:100px; /* chừa chỗ cho footer */
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.edit-line-footer{
+    flex-shrink:0;
+    height:72px;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    padding:0 24px;
+    background:#111827;
+    border-top:1px solid #374151;
+}
+
+.edit-line-next{
+    padding:10px 24px;
+    border:none;
+    border-radius:8px;
+    background:#2563eb;
+    color:#fff;
+    cursor:pointer;
+}
