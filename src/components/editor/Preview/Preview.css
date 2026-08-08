@@ -1,56 +1,90 @@
-.subtitle-line{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    flex-wrap:wrap;
+.subtitle-drag-box {
+    position: relative;
+
+    display: inline-block;
+
+    pointer-events: auto;
+
+    user-select: none;
 }
+
+
+/* Khung khi chọn line */
+
+.subtitle-drag-box-selected {
+    outline: 1px solid #00aaff;
+
+    outline-offset: 8px;
+
+    cursor: move;
+}
+
+
+/* =========================
+   SUBTITLE LINE
+========================= */
+
+.subtitle-line {
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+}
+
+
+/* =========================
+   WORD
+========================= */
 
 .subtitle-word {
+    position: relative;
 
-    position:relative;
+    display: inline-block;
 
-    display:inline-block;
+    margin-right: 8px;
 
-    margin-right:8px;
+    white-space: nowrap;
 
-    white-space:nowrap;
+    font-size: 40px;
 
-    font-size:40px;
-
-    font-weight:700;
-
+    font-weight: 700;
 }
 
 
+/* =========================
+   NORMAL
+========================= */
 
 .subtitle-normal {
+    position: relative;
 
-    position:relative;
+    display: block;
 
-    display:block;
-
-    z-index:1;
-
+    z-index: 1;
 }
 
 
+/* =========================
+   FILL
+========================= */
 
 .subtitle-fill {
+    position: absolute;
 
-    position:absolute;
+    left: 0;
 
-    left:0;
+    top: 0;
 
-    top:0;
+    height: 100%;
 
-    height:100%;
+    overflow: hidden;
 
-    overflow:hidden;
+    white-space: nowrap;
 
-    white-space:nowrap;
+    z-index: 2;
 
-    z-index:2;
-
-    pointer-events:none;
-
+    pointer-events: none;
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 
 import { useEditorStore } from "@/stores/editor.store";
@@ -5,236 +7,419 @@ import { useProjectStore } from "@/stores/project.store";
 
 export default function AudioPlayer() {
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+    const audioRef =
+        useRef<HTMLAudioElement | null>(null);
 
-  const [audioSrc, setAudioSrc] = useState("");
+    const [audioSrc, setAudioSrc] = useState("");
 
-  const audioFile = useProjectStore(
-    state => state.project?.audioFile
-  );
 
-  const playing = useEditorStore(
-    state => state.playing
-  );
+    // ==========================
+    // PROJECT
+    // ==========================
 
-  const currentTime = useEditorStore(
-    state => state.currentTime
-  );
+    const audioFile = useProjectStore(
+        state => state.project?.audioFile
+    );
 
-  const playbackRate = useEditorStore(
-    state => state.playbackRate
-  );
 
-  const volume = useEditorStore(
-    state => state.volume
-  );
+    // ==========================
+    // EDITOR STORE
+    // ==========================
 
-  const setCurrentTime = useEditorStore(
-    state => state.setCurrentTime
-  );
+    const playing = useEditorStore(
+        state => state.playing
+    );
 
-  const setDuration = useEditorStore(
-    state => state.setDuration
-  );
-const setAudioRef = useEditorStore(
-    state => state.setAudioRef
-);
-  // ==========================
-  // File path -> file://
-  // ==========================
-useEffect(()=>{
+    const currentTime = useEditorStore(
+        state => state.currentTime
+    );
 
-  setAudioRef(
-    audioRef.current
-  );
+    const playbackRate = useEditorStore(
+        state => state.playbackRate
+    );
 
+    const volume = useEditorStore(
+        state => state.volume
+    );
 
-  return ()=>{
 
-    setAudioRef(null);
+    const play = useEditorStore(
+        state => state.play
+    );
 
-  };
+    const pause = useEditorStore(
+        state => state.pause
+    );
 
 
-},[]);
-  useEffect(() => {
+    const setCurrentTime = useEditorStore(
+        state => state.setCurrentTime
+    );
 
-    if (!audioFile) {
+    const setDuration = useEditorStore(
+        state => state.setDuration
+    );
 
-      setAudioSrc("");
+    const setAudioRef = useEditorStore(
+        state => state.setAudioRef
+    );
 
-      return;
 
-    }
-const filename = audioFile
-  .split(/[\\/]/)
-  .pop()!;
+    // ==========================
+    // AUDIO REF
+    // ==========================
 
-const url =
-  `http://127.0.0.1:38555/imports/${filename}`;
-console.log("audioFile =", audioFile);
-console.log("audioSrc =", url);
+    useEffect(() => {
 
-setAudioSrc(url);
+        setAudioRef(
+            audioRef.current
+        );
 
-  }, [audioFile]);
+        return () => {
 
+            setAudioRef(null);
 
+        };
 
-  // ==========================
-  // Loaded
-  // ==========================
+    }, [setAudioRef]);
 
-  useEffect(() => {
 
-    const audio = audioRef.current;
+    // ==========================
+    // AUDIO FILE
+    // ==========================
 
-    if (!audio) return;
+    useEffect(() => {
 
-    const loaded = () => {
+        if (!audioFile) {
 
-      console.log("duration =", audio.duration);
+            setAudioSrc("");
 
-      setDuration(audio.duration);
+            setCurrentTime(0);
 
-    };
+            setDuration(0);
 
-    audio.addEventListener("loadedmetadata", loaded);
+            pause();
 
-    return () => {
+            return;
+        }
 
-      audio.removeEventListener("loadedmetadata", loaded);
 
-    };
+        const filename =
+            audioFile
+                .split(/[\\/]/)
+                .pop()!;
 
-  }, []);
 
+        const url =
+            `http://127.0.0.1:38555/imports/${filename}`;
 
 
+        console.log(
+            "audioFile =",
+            audioFile
+        );
 
-  // ==========================
-  // Play / Pause
-  // ==========================
+        console.log(
+            "audioSrc =",
+            url
+        );
 
-  useEffect(() => {
 
-    const audio = audioRef.current;
+        /*
+         * Audio mới:
+         *
+         * 1. Dừng
+         * 2. Về đầu
+         * 3. Load audio
+         */
 
-    if (!audio) return;
+        pause();
 
-    if (playing) {
+        setCurrentTime(0);
 
-      audio.play().catch(console.error);
+        setDuration(0);
 
-    } else {
+        setAudioSrc(url);
 
-      audio.pause();
+    }, [
+        audioFile,
+        pause,
+        setCurrentTime,
+        setDuration
+    ]);
 
-    }
 
-  }, [playing]);
+    // ==========================
+    // LOADED METADATA
+    // ==========================
 
+    useEffect(() => {
 
+        const audio =
+            audioRef.current;
 
+        if (!audio) return;
 
-  // ==========================
-  // Seek
-  // ==========================
 
-  useEffect(() => {
+        const loaded = () => {
 
-    const audio = audioRef.current;
+            console.log(
+                "duration =",
+                audio.duration
+            );
 
-    if (!audio) return;
 
-    if (
+            /*
+             * Luôn bắt đầu từ đầu
+             */
 
-      Math.abs(audio.currentTime - currentTime)
+            audio.currentTime = 0;
 
-      > 0.03
+            setCurrentTime(0);
 
-    ) {
+            setDuration(
+                audio.duration
+            );
 
-      audio.currentTime = currentTime;
 
-    }
+            /*
+             * Không tự chạy
+             */
 
-  }, [currentTime]);
+            audio.pause();
 
+            pause();
 
+        };
 
 
-  // ==========================
-  // Playback Rate
-  // ==========================
+        audio.addEventListener(
+            "loadedmetadata",
+            loaded
+        );
 
-  useEffect(() => {
 
-    if (audioRef.current) {
+        return () => {
 
-      audioRef.current.playbackRate = playbackRate;
+            audio.removeEventListener(
+                "loadedmetadata",
+                loaded
+            );
 
-    }
+        };
 
-  }, [playbackRate]);
+    }, [
+        setCurrentTime,
+        setDuration,
+        pause
+    ]);
 
 
+    // ==========================
+    // PLAY / PAUSE
+    // ==========================
 
+    useEffect(() => {
 
-  // ==========================
-  // Volume
-  // ==========================
+        const audio =
+            audioRef.current;
 
-  useEffect(() => {
+        if (!audio) return;
 
-    if (audioRef.current) {
 
-      audioRef.current.volume = volume;
+        if (playing) {
 
-    }
+            audio
+                .play()
+                .catch(error => {
 
-  }, [volume]);
+                    console.error(
+                        "Audio play error:",
+                        error
+                    );
 
+                    /*
+                     * Browser từ chối play
+                     * thì trả state về pause.
+                     */
 
+                    pause();
 
+                });
 
-  // ==========================
-  // Sync currentTime
-  // ==========================
+        } else {
 
-  useEffect(() => {
+            audio.pause();
 
-    const audio = audioRef.current;
+        }
 
-    if (!audio) return;
+    }, [
+        playing,
+        pause
+    ]);
 
-    let raf = 0;
 
-    const update = () => {
+    // ==========================
+    // SEEK
+    // ==========================
 
-      setCurrentTime(audio.currentTime);
+    useEffect(() => {
 
-      raf = requestAnimationFrame(update);
+        const audio =
+            audioRef.current;
 
-    };
+        if (!audio) return;
 
-    update();
 
-    return () => cancelAnimationFrame(raf);
+        if (
+            Math.abs(
+                audio.currentTime -
+                currentTime
+            ) > 0.03
+        ) {
 
-  }, []);
+            audio.currentTime =
+                currentTime;
 
+        }
 
+    }, [currentTime]);
 
 
-  return (
+    // ==========================
+    // PLAYBACK RATE
+    // ==========================
 
-    <audio
-      ref={audioRef}
-      src={audioSrc}
-      preload="auto"
-    />
+    useEffect(() => {
 
-  );
+        if (!audioRef.current) {
+            return;
+        }
 
+        audioRef.current.playbackRate =
+            playbackRate;
+
+    }, [playbackRate]);
+
+
+    // ==========================
+    // VOLUME
+    // ==========================
+
+    useEffect(() => {
+
+        if (!audioRef.current) {
+            return;
+        }
+
+        audioRef.current.volume =
+            volume;
+
+    }, [volume]);
+
+
+    // ==========================
+    // CURRENT TIME
+    // ==========================
+
+    useEffect(() => {
+
+        const audio =
+            audioRef.current;
+
+        if (!audio) return;
+
+
+        let animationFrame = 0;
+
+
+        const update = () => {
+
+            if (!audio.paused) {
+
+                setCurrentTime(
+                    audio.currentTime
+                );
+
+            }
+
+
+            animationFrame =
+                requestAnimationFrame(
+                    update
+                );
+
+        };
+
+
+        animationFrame =
+            requestAnimationFrame(
+                update
+            );
+
+
+        return () => {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+        };
+
+    }, [setCurrentTime]);
+
+
+    // ==========================
+    // AUDIO ENDED
+    // ==========================
+
+    useEffect(() => {
+
+        const audio =
+            audioRef.current;
+
+        if (!audio) return;
+
+
+        const handleEnded = () => {
+
+            pause();
+
+            setCurrentTime(
+                audio.duration || 0
+            );
+
+        };
+
+
+        audio.addEventListener(
+            "ended",
+            handleEnded
+        );
+
+
+        return () => {
+
+            audio.removeEventListener(
+                "ended",
+                handleEnded
+            );
+
+        };
+
+    }, [
+        pause,
+        setCurrentTime
+    ]);
+
+
+    return (
+
+        <audio
+            ref={audioRef}
+            src={audioSrc}
+            preload="auto"
+        />
+
+    );
 }

@@ -109,10 +109,6 @@ const setAudioFile = useProjectStore(
 >
   🎵 Import Song
 </button>
-            <button className="card">
-              🤖 Generate Lyrics
-            </button>
-            
           </div>
 
         </div>

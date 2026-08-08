@@ -1,34 +1,50 @@
 .karaoke-canvas {
+    position: relative;
 
-    position:relative;
+    width: 100%;
+    height: 400px;
 
-    width:100%;
+    overflow: hidden;
 
-    height:400px;
+    display: flex;
 
-    overflow:hidden;
+    justify-content: center;
+    align-items: center;
 
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    pointer-events:none;
-
+    /*
+     * Canvas không bắt chuột.
+     */
+    pointer-events: none;
 }
 
+
+/*
+ * Chỉ khung lyric mới nhận chuột
+ */
+.subtitle-drag-box {
+    pointer-events: auto;
+
+    flex-shrink: 0;
+
+    position: absolute;
+}
+
+
+/*
+ * Line không tự bắt chuột.
+ * Việc kéo do wrapper xử lý.
+ */
 .subtitle-line {
+    pointer-events: none;
 
-    pointer-events:none;
-
+    flex-shrink: 0;
 }
+
+
 .waiting-text {
+    color: #aaa;
 
-    color:#aaa;
+    font-size: 30px;
 
-    font-size:30px;
-
+    pointer-events: none;
 }
-
-

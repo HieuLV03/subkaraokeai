@@ -82,7 +82,11 @@ updateLyrics: (
     selectLine: (
         id: string | null
     ) => void;
-
+moveLine: (
+    id: string,
+    x: number,
+    y: number
+) => void;
     selectWord: (
         id: string | null
     ) => void;
@@ -133,9 +137,9 @@ export const defaultLyricStyle: LyricStyle = {
 
     shadow: true,
 
-    x: 200,
+    x: 100,
 
-    y: 350,
+    y: 150,
 
     align: "center"
 
@@ -166,16 +170,31 @@ startEditing:()=>{
     selectedWordId: null,
 
 setLyrics: (data) => {
-    set({
-        lyrics: data.map(line => ({
-            ...line,
-            style: {
-                ...defaultLyricStyle,
-                ...line.style
-            }
-        })),
-        isUserEditing: false
-    });
+
+set({
+
+lyrics:data.map(line=>({
+
+...line,
+
+
+style:{
+...defaultLyricStyle,
+...line.style
+},
+
+
+words:
+line.words ?? []
+
+
+})),
+
+isUserEditing:false
+
+});
+
+
 },
 updateLyrics: (updater) => {
 
@@ -253,7 +272,44 @@ updateLine: (id, data) => {
     }));
 
 },
+moveLine: (id, x, y) => {
 
+set(state => ({
+
+    lyrics: state.lyrics.map(line => {
+
+
+        if(line.id !== id)
+            return line;
+
+
+
+        return {
+
+            ...line,
+
+            style: {
+
+                ...defaultLyricStyle,
+
+                ...line.style,
+
+                x,
+                y
+
+            }
+
+        };
+
+
+    }),
+
+
+    isUserEditing:true
+
+}));
+
+},
 updateWord: (
 
     lineId,

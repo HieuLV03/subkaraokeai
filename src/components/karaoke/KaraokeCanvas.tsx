@@ -4,86 +4,54 @@ import "./KaraokeCanvas.css";
 
 import SubtitleLine from "../editor/Preview/SubtitleLine";
 
-import {
-    useLyricsStore
-} from "@/stores/lyrics.store";
+import { useLyricsStore } from "@/stores/lyrics.store";
+import { useEditorStore } from "@/stores/editor.store";
+
+export default function KaraokeCanvas() {
+
+    const lyrics = useLyricsStore(
+        (state) => state.lyrics
+    );
+
+    const currentTime = useEditorStore(
+        (state) => state.currentTime
+    );
 
 
-import {
-    useEditorStore
-} from "@/stores/editor.store";
-
-
-
-export default function KaraokeCanvas(){
-
-
-    const lyrics =
-        useLyricsStore(
-            state => state.lyrics
-        );
-
-
-    const currentTime =
-        useEditorStore(
-            state => state.currentTime
-        );
-
-
-
-    const currentLine =
-        lyrics.find(
-
-            line =>
-
-                currentTime >= line.start &&
-                currentTime <= line.end
-
-        );
-
+    // Lấy TẤT CẢ line đang nằm trong khoảng thời gian hiện tại
+    const currentLines = lyrics.filter(
+        (line) =>
+            currentTime >= line.start &&
+            currentTime <= line.end
+    );
 
 
     return (
-
         <div className="karaoke-canvas">
 
-
-            {
-                !currentLine && (
-
-                    <div className="waiting-text">
-
-                        Waiting lyric...
-
-                    </div>
-
-                )
-            }
+            {currentLines.length === 0 && (
+                <div className="waiting-text">
+                    Waiting lyric...
+                </div>
+            )}
 
 
+            {currentLines.map((line) => (
 
-            {
-                currentLine && (
+                <SubtitleLine
+                    key={line.id}
 
-                    <SubtitleLine
+                    line={line}
 
-                        line={currentLine}
+                    currentTime={currentTime}
 
-                        currentTime={currentTime}
+                    color="#ffffff"
 
-                        color="#ffffff"
+                    activeColor="#00ff66"
+                />
 
-                        activeColor="#00ff66"
-
-                    />
-
-                )
-            }
-
-
+            ))}
 
         </div>
-
     );
-
 }
