@@ -419,6 +419,8 @@ export default function AudioPlayer() {
             ref={audioRef}
             src={audioSrc}
             preload="auto"
+            muted
+
         />
 
     );
