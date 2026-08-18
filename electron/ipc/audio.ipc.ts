@@ -1,10 +1,12 @@
 import {
+  app,
   ipcMain,
-  dialog
+  dialog,
 } from "electron";
 
 import fs from "node:fs/promises";
 import path from "node:path";
+
 
 export function registerAudioIPC() {
 
@@ -12,71 +14,116 @@ export function registerAudioIPC() {
     "dialog:importAudio",
     async () => {
 
-      const result = await dialog.showOpenDialog({
+      const result =
+        await dialog.showOpenDialog({
 
-        title: "Import Audio",
+          title:
+            "Import Audio",
 
-        properties: ["openFile"],
+          properties: [
+            "openFile",
+          ],
 
-        filters: [
-          {
-            name: "Audio",
-            extensions: [
-              "mp3",
-              "wav",
-              "m4a",
-              "flac"
-            ]
-          }
-        ]
+          filters: [
+            {
+              name:
+                "Audio",
 
-      });
+              extensions: [
+                "mp3",
+                "wav",
+                "m4a",
+                "flac",
+              ],
+            },
+          ],
 
-      if (result.canceled) {
+        });
+
+
+      if (
+        result.canceled
+      ) {
+
         return null;
+
       }
 
-      const sourceFile = result.filePaths[0];
 
-      // ROOT của project
-      const root = process.env.APP_ROOT!;
+      const sourceFile =
+        result.filePaths[0];
 
-      // SubKaraokeAI/imports
-      const importDir = path.join(
-        root,
-        "imports"
-      );
+
+      if (!sourceFile) {
+
+        return null;
+
+      }
+
+
+      // ============================================================
+      // USER DATA
+      // ============================================================
+
+      const importDir =
+        path.join(
+          app.getPath("userData"),
+          "imports"
+        );
+
+
+      // ============================================================
+      // CREATE DIRECTORY
+      // ============================================================
 
       await fs.mkdir(
         importDir,
         {
-          recursive: true
+          recursive: true,
         }
       );
 
-      const ext = path.extname(
-        sourceFile
-      );
 
-      const destination = path.join(
-        importDir,
-        `${Date.now()}${ext}`
-      );
+      // ============================================================
+      // EXTENSION
+      // ============================================================
+
+      const ext =
+        path.extname(
+          sourceFile
+        ).toLowerCase();
+
+
+      // ============================================================
+      // DESTINATION
+      // ============================================================
+
+      const destination =
+        path.join(
+          importDir,
+          `${Date.now()}${ext}`
+        );
+
+
+      // ============================================================
+      // COPY
+      // ============================================================
 
       await fs.copyFile(
         sourceFile,
         destination
       );
 
+
       console.log(
-        "Imported:",
+        "[Audio IPC] Imported:",
         destination
       );
+
 
       return destination;
 
     }
-
   );
 
 }

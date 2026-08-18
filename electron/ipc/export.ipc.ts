@@ -776,30 +776,34 @@ function buildSvgFrame(
 // FFMPEG PATH
 // ============================================================
 
+// ============================================================
+// FFMPEG PATH
+// ============================================================
+
 function findFfmpeg() {
 
-    const root =
-        process.env.APP_ROOT!;
-
-
     const ffmpeg =
-        path.join(
+        app.isPackaged
 
-            root,
+            ? path.join(
+                process.resourcesPath,
+                "tools",
+                "ffmpeg",
+                "bin",
+                "ffmpeg.exe"
+            )
 
-            "tools",
-
-            "ffmpeg",
-
-            "bin",
-
-            "ffmpeg.exe"
-
-        );
+            : path.join(
+                process.env.APP_ROOT!,
+                "tools",
+                "ffmpeg",
+                "bin",
+                "ffmpeg.exe"
+            );
 
 
     console.log(
-        "FFmpeg:",
+        "[FFmpeg] Path:",
         ffmpeg
     );
 
@@ -807,7 +811,6 @@ function findFfmpeg() {
     return ffmpeg;
 
 }
-
 
 // ============================================================
 // RUN FFMPEG

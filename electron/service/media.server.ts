@@ -6,6 +6,10 @@ import {
 
 import path from "node:path";
 
+import {
+  app
+} from "electron";
+
 
 let server: any;
 
@@ -17,16 +21,25 @@ export function startMediaServer(
   return new Promise<number>((resolve) => {
 
 
-    const app = express();
+    const expressApp =
+      express();
 
 
     // =========================================================
-    // AUDIO / MEDIA
+    // USER DATA
+    // =========================================================
+
+    const userData =
+      app.getPath("userData");
+
+
+    // =========================================================
+    // AUDIO
     // =========================================================
 
     const importsPath =
       path.join(
-        root,
+        userData,
         "imports"
       );
 
@@ -37,25 +50,29 @@ export function startMediaServer(
 
     const videosPath =
       path.join(
-        root,
+        userData,
         "import_videos"
       );
 
 
+    // =========================================================
+    // LOG
+    // =========================================================
+
     console.log(
-      "MEDIA ROOT:",
-      root
+      "[Media Server] USER DATA:",
+      userData
     );
 
 
     console.log(
-      "IMPORTS PATH:",
+      "[Media Server] IMPORTS PATH:",
       importsPath
     );
 
 
     console.log(
-      "VIDEOS PATH:",
+      "[Media Server] VIDEOS PATH:",
       videosPath
     );
 
@@ -63,10 +80,10 @@ export function startMediaServer(
     // =========================================================
     // AUDIO
     //
-    // http://127.0.0.1:38555/imports/xxx.wav
+    // http://127.0.0.1:38555/imports/xxx.mp3
     // =========================================================
 
-    app.use(
+    expressApp.use(
       "/imports",
       express.static(
         importsPath
@@ -80,7 +97,7 @@ export function startMediaServer(
     // http://127.0.0.1:38555/import_videos/xxx.mp4
     // =========================================================
 
-    app.use(
+    expressApp.use(
       "/import_videos",
       express.static(
         videosPath
@@ -94,7 +111,7 @@ export function startMediaServer(
 
     server =
       createServer(
-        app
+        expressApp
       );
 
 
@@ -105,7 +122,7 @@ export function startMediaServer(
 
 
         console.log(
-          "Media server running:"
+          "[Media Server] Running:"
         );
 
 

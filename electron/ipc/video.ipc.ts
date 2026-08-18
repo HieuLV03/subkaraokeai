@@ -1,30 +1,40 @@
 import {
-  ipcMain,
+  app,
   dialog,
+  ipcMain,
 } from "electron";
 
 import fs from "node:fs/promises";
 import path from "node:path";
 
 
+// ============================================================
+// VIDEO DIRECTORY
+// ============================================================
+
 function getVideoDirectory() {
 
-  const root =
-    process.env.APP_ROOT!;
-
   return path.join(
-    root,
+    app.getPath("userData"),
     "import_videos"
   );
 
 }
 
 
+// ============================================================
+// REGISTER VIDEO IPC
+// ============================================================
+
 export function registerVideoIPC() {
 
   ipcMain.handle(
     "dialog:importVideo",
     async () => {
+
+      // --------------------------------------------------------
+      // OPEN FILE DIALOG
+      // --------------------------------------------------------
 
       const result =
         await dialog.showOpenDialog({
@@ -54,6 +64,10 @@ export function registerVideoIPC() {
         });
 
 
+      // --------------------------------------------------------
+      // CANCEL
+      // --------------------------------------------------------
+
       if (
         result.canceled
       ) {
@@ -74,6 +88,10 @@ export function registerVideoIPC() {
       }
 
 
+      // --------------------------------------------------------
+      // CREATE IMPORT DIRECTORY
+      // --------------------------------------------------------
+
       const importDir =
         getVideoDirectory();
 
@@ -86,18 +104,34 @@ export function registerVideoIPC() {
       );
 
 
+      // --------------------------------------------------------
+      // FILE EXTENSION
+      // --------------------------------------------------------
+
       const ext =
         path.extname(
           sourceFile
-        );
+        ).toLowerCase();
+
+
+      // --------------------------------------------------------
+      // UNIQUE FILE NAME
+      // --------------------------------------------------------
+
+      const fileName =
+        `${Date.now()}${ext}`;
 
 
       const destination =
         path.join(
           importDir,
-          `${Date.now()}${ext}`
+          fileName
         );
 
+
+      // --------------------------------------------------------
+      // COPY VIDEO
+      // --------------------------------------------------------
 
       await fs.copyFile(
         sourceFile,
@@ -106,10 +140,14 @@ export function registerVideoIPC() {
 
 
       console.log(
-        "Imported video background:",
+        "[Video IPC] Imported:",
         destination
       );
 
+
+      // --------------------------------------------------------
+      // RETURN FILE PATH
+      // --------------------------------------------------------
 
       return destination;
 
