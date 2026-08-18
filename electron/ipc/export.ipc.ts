@@ -1345,165 +1345,141 @@ export function registerExportIPC() {
                  */
 
 
-                await runFfmpeg(
+            await runFfmpeg(
 
-                    [
+    [
 
-                        "-y",
+        "-y",
 
 
-                        // =====================================
-                        // VIDEO BACKGROUND
-                        // =====================================
+        // =====================================
+        // VIDEO BACKGROUND
+        // =====================================
 
-                        "-stream_loop",
-                        "-1",
+        "-stream_loop",
+        "-1",
 
-                        "-i",
-                        data.videoFile,
+        "-i",
+        data.videoFile,
 
 
-                        // =====================================
-                        // AUDIO
-                        // =====================================
+        // =====================================
+        // LYRIC FRAMES
+        // =====================================
 
-                        "-i",
-                        data.audioFile,
+        "-framerate",
+        String(fps),
 
+        "-i",
+        inputPattern,
 
-                        // =====================================
-                        // LYRIC FRAMES
-                        // =====================================
 
-                        "-framerate",
-                        String(fps),
+        // =====================================
+        // FILTER
+        // =====================================
 
-                        "-i",
-                        inputPattern,
+        "-filter_complex",
 
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
 
-                        // =====================================
-                        // FILTER
-                        // =====================================
+        `[1:v]format=rgba[lyrics];` +
 
-                        "-filter_complex",
+        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
 
-                        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
 
-                        `[2:v]format=rgba[lyrics];` +
+        // =====================================
+        // VIDEO
+        // =====================================
 
-                        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
+        "-map",
+        "[outv]",
 
 
-                        // =====================================
-                        // VIDEO
-                        // =====================================
+        // =====================================
+        // KHÔNG AUDIO
+        // =====================================
 
-                        "-map",
-                        "[outv]",
+        "-an",
 
 
-                        // =====================================
-                        // AUDIO
-                        // =====================================
+        // =====================================
+        // VIDEO CODEC
+        // =====================================
 
-                        "-map",
-                        "1:a:0",
+        "-c:v",
+        "libx264",
 
+        "-preset",
+        "medium",
 
-                        // =====================================
-                        // VIDEO CODEC
-                        // =====================================
+        "-crf",
+        "18",
 
-                        "-c:v",
-                        "libx264",
+        "-pix_fmt",
+        "yuv420p",
 
 
-                        "-preset",
-                        "medium",
+        // =====================================
+        // DURATION
+        // =====================================
 
+        "-t",
+        String(duration),
 
-                        "-crf",
-                        "18",
 
+        // =====================================
+        // MOV / MP4
+        // =====================================
 
-                        "-pix_fmt",
-                        "yuv420p",
+        "-movflags",
+        "+faststart",
 
 
-                        // =====================================
-                        // AUDIO CODEC
-                        // =====================================
+        outputPath,
 
-                        "-c:a",
-                        "aac",
+    ],
 
 
-                        "-b:a",
-                        "192k",
+    time => {
 
+        const progress =
+            50 +
 
-                        // =====================================
-                        // DURATION
-                        // =====================================
+            clamp(
 
-                        "-t",
-                        String(duration),
+                (
+                    time /
+                    duration
+                ) * 50,
 
+                0,
+                50
 
-                        // =====================================
-                        // MOV / MP4
-                        // =====================================
+            );
 
-                        "-movflags",
-                        "+faststart",
 
+        event.sender.send(
 
-                        outputPath,
+            "export:progress",
 
-                    ],
+            {
 
+                stage:
+                    "ffmpeg",
 
-                    time => {
+                progress,
 
-                        const progress =
-                            50 +
+                time,
 
-                            clamp(
+                duration,
 
-                                (
-                                    time /
-                                    duration
-                                ) * 50,
+            }
 
-                                0,
-                                50
+        );
 
-                            );
+    }
 
-
-                        event.sender.send(
-
-                            "export:progress",
-
-                            {
-
-                                stage:
-                                    "ffmpeg",
-
-                                progress,
-
-                                time,
-
-                                duration,
-
-                            }
-
-                        );
-
-                    }
-
-                );
+);
 
 
                 // =============================================
