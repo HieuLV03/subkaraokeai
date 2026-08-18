@@ -23,7 +23,9 @@ import {
   startMediaServer
 } from "../electron/service/media.server";
 
-
+import {
+  registerVideoIPC
+} from "./ipc/video.ipc";
 import {
   fileURLToPath
 } from "node:url";
@@ -141,6 +143,7 @@ const mediaRoot =
 
 
   registerAudioIPC();
+registerVideoIPC();
 
 
   registerAIIPC();

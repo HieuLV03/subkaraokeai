@@ -25,7 +25,7 @@ type LyricWord = {
 
     end: number;
 
-    synced: boolean;
+    synced?: boolean;
 
 };
 
@@ -50,12 +50,6 @@ type LyricStyle = {
 
     y: number;
 
-    /*
-     * Optional.
-     *
-     * Store hiện tại của bạn chưa cần scale,
-     * nhưng giữ lại để tương thích project cũ.
-     */
     scale?: number;
 
     align:
@@ -89,6 +83,10 @@ type ExportData = {
 
     duration: number;
 
+    videoFile: string;
+
+    audioFile: string;
+
     width?: number;
 
     height?: number;
@@ -102,19 +100,10 @@ type ExportData = {
 // CONSTANTS
 // ============================================================
 
-/*
- * Canvas THẬT của project.
- *
- * Preview chỉ là bản thu nhỏ:
- *
- * 1920 × 1080
- *       ↓ scale 1/3
- * 640 × 360
- */
-
 const CANVAS_WIDTH = 1920;
 
 const CANVAS_HEIGHT = 1080;
+
 const PREVIEW_SCALE = 3;
 
 const PREVIEW_WORD_GAP = 8;
@@ -122,6 +111,7 @@ const PREVIEW_WORD_GAP = 8;
 const EXPORT_WORD_GAP =
     PREVIEW_WORD_GAP *
     PREVIEW_SCALE;
+
 
 // ============================================================
 // HELPERS
@@ -161,18 +151,6 @@ function escapeXml(
 }
 
 
-function escapeFileName(
-    value: string
-) {
-
-    return value.replace(
-        /[<>:"/\\|?*\x00-\x1F]/g,
-        "_"
-    );
-
-}
-
-
 function clamp(
     value: number,
     min: number,
@@ -201,11 +179,6 @@ function getDefaultStyle(): LyricStyle {
         fontFamily:
             "Arial",
 
-        /*
-         * Canvas thật.
-         *
-         * Preview sẽ tự scale xuống 1/3.
-         */
         fontSize:
             120,
 
@@ -224,9 +197,6 @@ function getDefaultStyle(): LyricStyle {
         shadow:
             true,
 
-        /*
-         * CENTER của canvas 1920 × 1080
-         */
         x:
             960,
 
@@ -245,7 +215,7 @@ function getDefaultStyle(): LyricStyle {
 
 
 // ============================================================
-// WORD KARAOKE PERCENT
+// WORD PERCENT
 // ============================================================
 
 function getWordPercent(
@@ -292,15 +262,13 @@ function getWordPercent(
     return clamp(
 
         (
-            (
-                currentTime -
-                word.start
-            )
-            /
-            (
-                word.end -
-                word.start
-            )
+            currentTime -
+            word.start
+        )
+        /
+        (
+            word.end -
+            word.start
         )
         *
         100,
@@ -315,23 +283,8 @@ function getWordPercent(
 
 
 // ============================================================
-// APPROX TEXT WIDTH
+// TEXT WIDTH
 // ============================================================
-
-/*
- * SVG không có DOM browser để lấy
- * getBoundingClientRect().
- *
- * Vì vậy cần ước lượng width.
- *
- * Quan trọng:
- *
- * Preview cũng đang dùng một chuỗi word
- * nối với nhau.
- *
- * Ta dùng cùng một quy tắc xuyên suốt
- * cho export.
- */
 
 function getCharWidthRatio(
     char: string
@@ -341,34 +294,50 @@ function getCharWidthRatio(
         char === " " ||
         char === "\u00A0"
     ) {
+
         return 0.28;
+
     }
+
 
     if (
         "ilIjtfr".includes(char)
     ) {
+
         return 0.30;
+
     }
+
 
     if (
         "mwMW".includes(char)
     ) {
+
         return 0.85;
+
     }
+
 
     if (
         "ABCDEFGHKNOPQRSTUVXYZ".includes(char)
     ) {
+
         return 0.68;
+
     }
+
 
     if (
         "0123456789".includes(char)
     ) {
+
         return 0.56;
+
     }
 
+
     return 0.55;
+
 }
 
 
@@ -382,6 +351,7 @@ function getWordWidth(
 
     let width = 0;
 
+
     for (
         const char of text
     ) {
@@ -394,11 +364,14 @@ function getWordWidth(
 
     }
 
+
     return Math.max(
         width,
         fontSize * 0.3
     );
+
 }
+
 
 function getLineWidth(
     words: LyricWord[],
@@ -407,32 +380,19 @@ function getLineWidth(
 
     let width = 0;
 
+
     for (
         let i = 0;
         i < words.length;
         i++
     ) {
 
-        const word =
-            words[i];
-
         width +=
             getWordWidth(
-                word.word ?? "",
+                words[i].word ?? "",
                 fontSize
             );
 
-        /*
-         * Preview:
-         *
-         * .subtitle-word {
-         *     margin-right: 8px;
-         * }
-         *
-         * Export:
-         *
-         * 8 × 3 = 24
-         */
 
         if (
             i <
@@ -446,10 +406,12 @@ function getLineWidth(
 
     }
 
+
     return Math.max(
         width,
         fontSize
     );
+
 }
 
 
@@ -501,9 +463,10 @@ function buildWordSvg(
         "#000000";
 
 
-const outlineWidth =
-    (style.outlineWidth ?? 0) *
-    PREVIEW_SCALE;
+    const outlineWidth =
+        (style.outlineWidth ?? 0) *
+        PREVIEW_SCALE;
+
 
     const shadow =
         style.shadow ??
@@ -517,10 +480,6 @@ const outlineWidth =
         );
 
 
-    /*
-     * Stroke
-     */
-
     const stroke =
         outlineWidth > 0
 
@@ -528,18 +487,12 @@ const outlineWidth =
                 stroke="${escapeXml(
                     outline
                 )}"
-
                 stroke-width="${outlineWidth}"
-
                 paint-order="stroke fill"
             `
 
             : "";
 
-
-    /*
-     * Shadow
-     */
 
     const filter =
         shadow
@@ -549,11 +502,7 @@ const outlineWidth =
             : "";
 
 
-    /*
-     * Normal text
-     */
-
-const normal = `
+    const normal = `
 <text
     x="${x}"
     y="0"
@@ -569,22 +518,23 @@ const normal = `
 >${safeText}&#160;</text>
 `;
 
-const fillWidth =
-    wordWidth *
-    (
-        percent /
-        100
-    );
+
+    const fillWidth =
+        wordWidth *
+        (
+            percent /
+            100
+        );
 
 
-const clipId =
-    `clip-${word.id.replace(
-        /[^a-zA-Z0-9_-]/g,
-        ""
-    )}`;
+    const clipId =
+        `clip-${word.id.replace(
+            /[^a-zA-Z0-9_-]/g,
+            ""
+        )}`;
 
 
-const active = `
+    const active = `
 <clipPath id="${clipId}">
     <rect
         x="${x}"
@@ -611,15 +561,17 @@ const active = `
 `;
 
 
-return {
-    svg:
-        normal +
-        active,
+    return {
 
-    width:
-        wordWidth +
-        EXPORT_WORD_GAP,
-};
+        svg:
+            normal +
+            active,
+
+        width:
+            wordWidth +
+            EXPORT_WORD_GAP,
+
+    };
 
 }
 
@@ -640,36 +592,20 @@ function buildSvgFrame(
 
 ) {
 
-    /*
-     * ==========================================
-     * CHỈ LẤY LINE ĐANG HIỆN TẠI
-     * ==========================================
-     */
-
     const activeLines =
         lyrics.filter(
 
             line =>
 
-                currentTime >=
-                    line.start
+                currentTime >= line.start &&
 
-                &&
-
-                currentTime <=
-                    line.end
+                currentTime <= line.end
 
         );
 
 
     let content = "";
 
-
-    /*
-     * ==========================================
-     * RENDER TỪNG LINE
-     * ==========================================
-     */
 
     for (
         const line of activeLines
@@ -697,54 +633,30 @@ function buildSvgFrame(
         }
 
 
-        /*
-         * ======================================
-         * STYLE
-         * ======================================
-         */
+        const fontSize =
+            (style.fontSize ?? 40) *
+            PREVIEW_SCALE;
 
 
-
-        /*
-         * ======================================
-         * LINE POSITION
-         * ======================================
-         *
-         * x/y là CENTER của object.
-         *
-         * Giống Preview:
-         *
-         * left: x
-         * top: y
-         * transform:
-         * translate(-50%, -50%)
-         */
-const fontSize =
-    (style.fontSize ?? 40) *
-    PREVIEW_SCALE;
-
-const scale =
-    style.scale ??
-    1;
-
-const align =
-    style.align ??
-    "center";
-
-const x =
-    (style.x ?? 330) *
-    PREVIEW_SCALE;
-
-const y =
-    (style.y ?? 180) *
-    PREVIEW_SCALE;
+        const scale =
+            style.scale ??
+            1;
 
 
-        /*
-         * ======================================
-         * WIDTH
-         * ======================================
-         */
+        const align =
+            style.align ??
+            "center";
+
+
+        const x =
+            (style.x ?? 330) *
+            PREVIEW_SCALE;
+
+
+        const y =
+            (style.y ?? 180) *
+            PREVIEW_SCALE;
+
 
         const lineWidth =
             getLineWidth(
@@ -753,29 +665,20 @@ const y =
             );
 
 
-        /*
-         * ======================================
-         * START X
-         * ======================================
-         */
-
         let startX = 0;
 
 
         if (
-            align ===
-            "center"
+            align === "center"
         ) {
 
             startX =
-                -lineWidth /
-                2;
+                -lineWidth / 2;
 
         }
 
         else if (
-            align ===
-            "right"
+            align === "right"
         ) {
 
             startX =
@@ -783,12 +686,6 @@ const y =
 
         }
 
-
-        /*
-         * ======================================
-         * WORDS
-         * ======================================
-         */
 
         let wordsSvg = "";
 
@@ -827,19 +724,7 @@ const y =
         }
 
 
-        /*
-         * ======================================
-         * OBJECT
-         * ======================================
-         *
-         * x/y = center.
-         *
-         * Không phụ thuộc selectedLine.
-         *
-         * Không phụ thuộc Preview scale.
-         */
-
-    content += `
+        content += `
 <g
     transform="translate(${x} ${y}) scale(${scale})"
 >
@@ -850,17 +735,7 @@ const y =
     }
 
 
-    /*
-     * ==========================================
-     * SVG
-     * ==========================================
-     *
-     * Không có background.
-     *
-     * => Transparent.
-     */
-
-return `
+    return `
 <svg
     xmlns="http://www.w3.org/2000/svg"
     width="${width}"
@@ -868,6 +743,7 @@ return `
     viewBox="0 0 ${width} ${height}"
 >
     <defs>
+
         <filter
             id="shadow"
             x="-50%"
@@ -875,6 +751,7 @@ return `
             width="200%"
             height="200%"
         >
+
             <feDropShadow
                 dx="3"
                 dy="3"
@@ -882,7 +759,9 @@ return `
                 flood-color="#000000"
                 flood-opacity="0.8"
             />
+
         </filter>
+
     </defs>
 
     ${content}
@@ -894,30 +773,38 @@ return `
 
 
 // ============================================================
-// FIND FFMPEG
+// FFMPEG PATH
 // ============================================================
 
 function findFfmpeg() {
 
-    /*
-     * Dev:
-     *
-     * project/tools/ffmpeg/bin/ffmpeg.exe
-     */
+    const root =
+        process.env.APP_ROOT!;
 
-    return path.join(
 
-        process.cwd(),
+    const ffmpeg =
+        path.join(
 
-        "tools",
+            root,
 
-        "ffmpeg",
+            "tools",
 
-        "bin",
+            "ffmpeg",
 
-        "ffmpeg.exe"
+            "bin",
 
+            "ffmpeg.exe"
+
+        );
+
+
+    console.log(
+        "FFmpeg:",
+        ffmpeg
     );
+
+
+    return ffmpeg;
 
 }
 
@@ -951,8 +838,10 @@ function runFfmpeg(
                     args,
 
                     {
+
                         windowsHide:
                             true,
+
                     }
 
                 );
@@ -975,12 +864,6 @@ function runFfmpeg(
                     stderr +=
                         text;
 
-
-                    /*
-                     * FFmpeg:
-                     *
-                     * time=00:00:03.12
-                     */
 
                     const match =
                         text.match(
@@ -1012,16 +895,8 @@ function runFfmpeg(
 
 
                         const time =
-                            hours *
-                            3600
-
-                            +
-
-                            minutes *
-                            60
-
-                            +
-
+                            hours * 3600 +
+                            minutes * 60 +
                             seconds;
 
 
@@ -1107,12 +982,6 @@ export function registerExportIPC() {
 
         ) => {
 
-            /*
-             * ==========================================
-             * CANVAS
-             * ==========================================
-             */
-
             const width =
                 data.width ??
                 CANVAS_WIDTH;
@@ -1130,20 +999,36 @@ export function registerExportIPC() {
 
             const duration =
                 Math.max(
-
                     0,
-
-                    data.duration ??
-                    0
-
+                    data.duration ?? 0
                 );
 
 
-            /*
-             * ==========================================
-             * VALIDATE
-             * ==========================================
-             */
+            // =================================================
+            // VALIDATE
+            // =================================================
+
+            if (
+                !data.videoFile
+            ) {
+
+                throw new Error(
+                    "Chưa có video nền."
+                );
+
+            }
+
+
+            if (
+                !data.audioFile
+            ) {
+
+                throw new Error(
+                    "Chưa có audio."
+                );
+
+            }
+
 
             if (
                 !data.lyrics?.length
@@ -1167,58 +1052,81 @@ export function registerExportIPC() {
             }
 
 
-            /*
-             * ==========================================
-             * SAVE DIALOG
-             * ==========================================
-             */
+            try {
+
+                await fs.access(
+                    data.videoFile
+                );
+
+            }
+
+            catch {
+
+                throw new Error(
+                    `Không tìm thấy video:\n${data.videoFile}`
+                );
+
+            }
+
+
+            try {
+
+                await fs.access(
+                    data.audioFile
+                );
+
+            }
+
+            catch {
+
+                throw new Error(
+                    `Không tìm thấy audio:\n${data.audioFile}`
+                );
+
+            }
+
+
+            // =================================================
+            // SAVE DIALOG
+            // =================================================
 
             const result =
-                await dialog.showSaveDialog(
+                await dialog.showSaveDialog({
 
-                    {
+                    title:
+                        "Export Karaoke Video",
 
-                        title:
-                            "Export Transparent Karaoke Video",
+                    defaultPath:
+                        path.join(
 
-
-                        defaultPath:
-
-                            path.join(
-
-                                app.getPath(
-                                    "videos"
-                                ),
-
-                                "karaoke-transparent.webm"
-
+                            app.getPath(
+                                "videos"
                             ),
 
+                            "karaoke-video.mp4"
 
-                        filters: [
+                        ),
 
-                            {
+                    filters: [
 
-                                name:
-                                    "Transparent WebM",
+                        {
 
-                                extensions:
-                                    ["webm"],
+                            name:
+                                "MP4 Video",
 
-                            },
+                            extensions:
+                                ["mp4"],
 
-                        ],
+                        },
 
-                    }
+                    ],
 
-                );
+                });
 
 
             if (
 
-                result.canceled
-
-                ||
+                result.canceled ||
 
                 !result.filePath
 
@@ -1234,32 +1142,19 @@ export function registerExportIPC() {
             }
 
 
-            /*
-             * ==========================================
-             * OUTPUT
-             * ==========================================
-             */
-
             const outputPath =
-
                 result.filePath.endsWith(
-                    ".webm"
+                    ".mp4"
                 )
 
-                    ?
+                    ? result.filePath
 
-                    result.filePath
-
-                    :
-
-                    `${result.filePath}.webm`;
+                    : `${result.filePath}.mp4`;
 
 
-            /*
-             * ==========================================
-             * TEMP DIRECTORY
-             * ==========================================
-             */
+            // =================================================
+            // TEMP DIRECTORY
+            // =================================================
 
             const exportRoot =
                 path.join(
@@ -1297,46 +1192,35 @@ export function registerExportIPC() {
 
             try {
 
-                /*
-                 * ======================================
-                 * 1. GENERATE PNG FRAMES
-                 * ======================================
-                 */
+                // =============================================
+                // 1. GENERATE TRANSPARENT LYRIC FRAMES
+                // =============================================
 
                 const totalFrames =
                     Math.ceil(
-
-                        duration *
-                        fps
-
+                        duration * fps
                     );
+
+
+                console.log(
+                    "Generating frames:",
+                    totalFrames
+                );
 
 
                 for (
 
                     let frame = 0;
 
-                    frame <
-                    totalFrames;
+                    frame < totalFrames;
 
                     frame++
 
                 ) {
 
-                    /*
-                     * Timeline chính xác.
-                     *
-                     * Không dùng real-time.
-                     */
-
                     const currentTime =
-                        frame /
-                        fps;
+                        frame / fps;
 
-
-                    /*
-                     * Build SVG
-                     */
 
                     const svg =
                         buildSvgFrame(
@@ -1351,10 +1235,6 @@ export function registerExportIPC() {
 
                         );
 
-
-                    /*
-                     * PNG transparent
-                     */
 
                     const framePath =
                         path.join(
@@ -1371,35 +1251,14 @@ export function registerExportIPC() {
                         );
 
 
-            await sharp(
-    Buffer.from(svg)
-)
-    .png()
-    .toFile(framePath);
+                    await sharp(
+                        Buffer.from(svg)
+                    )
+                        .png()
+                        .toFile(
+                            framePath
+                        );
 
-const metadata = await sharp(
-    framePath
-).metadata();
-
-console.log(
-    "[EXPORT PNG]",
-    {
-        frame,
-        width: metadata.width,
-        height: metadata.height,
-        channels: metadata.channels,
-        hasAlpha: metadata.hasAlpha,
-        format: metadata.format,
-    }
-);
-
-
-                    /*
-                     * Progress:
-                     *
-                     * Frame generation
-                     * = 0 → 50%
-                     */
 
                     event.sender.send(
 
@@ -1413,18 +1272,9 @@ console.log(
                             progress:
 
                                 (
-
-                                    (frame + 1)
-
-                                    /
-
+                                    (frame + 1) /
                                     totalFrames
-
-                                )
-
-                                *
-
-                                50,
+                                ) * 50,
 
                             current:
                                 frame + 1,
@@ -1439,11 +1289,13 @@ console.log(
                 }
 
 
-                /*
-                 * ======================================
-                 * 2. FFMPEG
-                 * ======================================
-                 */
+                // =============================================
+                // 2. FFMPEG
+                //
+                // INPUT 0 = VIDEO BACKGROUND
+                // INPUT 1 = AUDIO
+                // INPUT 2 = TRANSPARENT LYRIC FRAMES
+                // =============================================
 
                 const inputPattern =
                     path.join(
@@ -1455,6 +1307,44 @@ console.log(
                     );
 
 
+                console.log(
+                    "Export video:",
+                    data.videoFile
+                );
+
+
+                console.log(
+                    "Export audio:",
+                    data.audioFile
+                );
+
+
+                console.log(
+                    "Export output:",
+                    outputPath
+                );
+
+
+                /*
+                 * Video:
+                 *
+                 * -stream_loop -1
+                 *
+                 * => video tự lặp nếu
+                 *    ngắn hơn audio.
+                 *
+                 *
+                 * Audio:
+                 *
+                 * => audio riêng của project.
+                 *
+                 *
+                 * Lyrics:
+                 *
+                 * => transparent PNG sequence.
+                 */
+
+
                 await runFfmpeg(
 
                     [
@@ -1462,68 +1352,111 @@ console.log(
                         "-y",
 
 
-                        /*
-                         * PNG sequence FPS
-                         */
+                        // =====================================
+                        // VIDEO BACKGROUND
+                        // =====================================
 
-                        "-framerate",
-
-                        String(
-                            fps
-                        ),
-
+                        "-stream_loop",
+                        "-1",
 
                         "-i",
+                        data.videoFile,
 
+
+                        // =====================================
+                        // AUDIO
+                        // =====================================
+
+                        "-i",
+                        data.audioFile,
+
+
+                        // =====================================
+                        // LYRIC FRAMES
+                        // =====================================
+
+                        "-framerate",
+                        String(fps),
+
+                        "-i",
                         inputPattern,
 
 
-                        /*
-                         * Pixel format RGBA
-                         */
+                        // =====================================
+                        // FILTER
+                        // =====================================
 
-                        "-pix_fmt",
+                        "-filter_complex",
 
-                        "yuva420p",
+                        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
+
+                        `[2:v]format=rgba[lyrics];` +
+
+                        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
 
 
-                        /*
-                         * VP9
-                         */
+                        // =====================================
+                        // VIDEO
+                        // =====================================
+
+                        "-map",
+                        "[outv]",
+
+
+                        // =====================================
+                        // AUDIO
+                        // =====================================
+
+                        "-map",
+                        "1:a:0",
+
+
+                        // =====================================
+                        // VIDEO CODEC
+                        // =====================================
 
                         "-c:v",
+                        "libx264",
 
-                        "libvpx-vp9",
 
-
-                        /*
-                         * Quality
-                         */
-
-                        "-b:v",
-
-                        "0",
+                        "-preset",
+                        "medium",
 
 
                         "-crf",
-
-                        "30",
-
-
-                        /*
-                         * Bật alpha transparency
-                         */
-
-                        "-auto-alt-ref",
-
-                        "0",
+                        "18",
 
 
-                        /*
-                         * Không audio
-                         */
+                        "-pix_fmt",
+                        "yuv420p",
 
-                        "-an",
+
+                        // =====================================
+                        // AUDIO CODEC
+                        // =====================================
+
+                        "-c:a",
+                        "aac",
+
+
+                        "-b:a",
+                        "192k",
+
+
+                        // =====================================
+                        // DURATION
+                        // =====================================
+
+                        "-t",
+                        String(duration),
+
+
+                        // =====================================
+                        // MOV / MP4
+                        // =====================================
+
+                        "-movflags",
+                        "+faststart",
 
 
                         outputPath,
@@ -1539,21 +1472,11 @@ console.log(
                             clamp(
 
                                 (
-
-                                    time
-
-                                    /
-
+                                    time /
                                     duration
-
-                                )
-
-                                *
-
-                                50,
+                                ) * 50,
 
                                 0,
-
                                 50
 
                             );
@@ -1583,11 +1506,9 @@ console.log(
                 );
 
 
-                /*
-                 * ======================================
-                 * DONE
-                 * ======================================
-                 */
+                // =============================================
+                // DONE
+                // =============================================
 
                 event.sender.send(
 
@@ -1606,6 +1527,12 @@ console.log(
                 );
 
 
+                console.log(
+                    "EXPORT SUCCESS:",
+                    outputPath
+                );
+
+
                 return {
 
                     canceled:
@@ -1617,13 +1544,8 @@ console.log(
 
             }
 
-            finally {
 
-                /*
-                 * ======================================
-                 * CLEAN TEMP FRAMES
-                 * ======================================
-                 */
+            finally {
 
                 await fs.rm(
 

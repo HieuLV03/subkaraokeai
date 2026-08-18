@@ -1,14 +1,17 @@
-.subtitle-drag-box {
-    position: relative;
+.preview {
+    width: 100%;
+    height: 100%;
 
-    display: inline-block;
+    display: flex;
 
-    pointer-events: auto;
+    justify-content: center;
+    align-items: center;
 
-    user-select: none;
+    overflow: hidden;
 }
 
-.video-area {
+
+.youtube-frame {
     position: relative;
 
     width: 100%;
@@ -19,84 +22,85 @@
     justify-content: center;
     align-items: center;
 
-    overflow: auto;
-}
-/* Khung khi chọn line */
-
-.subtitle-drag-box-selected {
-    outline: 1px solid #00aaff;
-
-    outline-offset: 8px;
-
-    cursor: move;
+    overflow: hidden;
 }
 
 
-/* =========================
-   SUBTITLE LINE
-========================= */
-
-.subtitle-line {
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    flex-wrap: wrap;
-}
-
-
-/* =========================
-   WORD
-========================= */
-
-.subtitle-word {
+.video-area {
     position: relative;
 
-    display: inline-block;
+    width: 640px;
+    height: 360px;
 
-    margin-right: 8px;
-
-    white-space: nowrap;
-
-    font-size: 30px;
-
-    font-weight: 700;
-}
-
-
-/* =========================
-   NORMAL
-========================= */
-
-.subtitle-normal {
-    position: relative;
-
-    display: block;
-
-    z-index: 1;
-}
-
-
-/* =========================
-   FILL
-========================= */
-
-.subtitle-fill {
-    position: absolute;
-
-    left: 0;
-
-    top: 0;
-
-    height: 100%;
+    flex-shrink: 0;
 
     overflow: hidden;
 
-    white-space: nowrap;
+    background: #000;
+}
+
+
+/* =========================================================
+   VIDEO BACKGROUND
+========================================================= */
+
+.preview-video {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    z-index: 1;
+
+    display: block;
+}
+
+
+/* =========================================================
+   KARAOKE
+========================================================= */
+
+.karaoke-overlay {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
 
     z-index: 2;
 
     pointer-events: none;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.preview-empty {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 3;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+    align-items: center;
+
+    gap: 10px;
+
+    color: #aaa;
+
+    font-size: 20px;
+
+    background: #111;
 }

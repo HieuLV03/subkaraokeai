@@ -9,54 +9,56 @@ import { useEditorStore } from "@/stores/editor.store";
 
 export default function KaraokeCanvas() {
 
-    const lyrics = useLyricsStore(
-        (state) => state.lyrics
-    );
+    const lyrics =
+        useLyricsStore(
+            state => state.lyrics
+        );
 
-    const currentTime = useEditorStore(
-        (state) => state.currentTime
-    );
+    const currentTime =
+        useEditorStore(
+            state => state.currentTime
+        );
 
-
-    const currentLines = lyrics.filter(
-        (line) =>
-            currentTime >= line.start &&
-            currentTime <= line.end
-    );
-
+    const currentLines =
+        lyrics.filter(
+            line =>
+                currentTime >= line.start &&
+                currentTime <= line.end
+        );
 
     return (
 
         <div className="karaoke-canvas">
 
-            {currentLines.length === 0 && (
+            {/* =================================================
+                LYRICS ONLY
+            ================================================= */}
 
-                <div className="waiting-text">
+            <div className="karaoke-lyrics-layer">
 
-                    Waiting lyric...
+                {currentLines.length === 0 && (
 
-                </div>
+                    <div className="waiting-text">
+                        Waiting lyric...
+                    </div>
 
-            )}
+                )}
 
+                {currentLines.map(
+                    line => (
 
-            {currentLines.map((line) => (
+                        <SubtitleLine
+                            key={line.id}
+                            line={line}
+                            currentTime={currentTime}
+                            color="#ffffff"
+                            activeColor="#00ff66"
+                        />
 
-                <SubtitleLine
+                    )
+                )}
 
-                    key={line.id}
-
-                    line={line}
-
-                    currentTime={currentTime}
-
-                    color="#ffffff"
-
-                    activeColor="#00ff66"
-
-                />
-
-            ))}
+            </div>
 
         </div>
 

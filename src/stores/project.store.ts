@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import {
   KaraokeProject,
   LyricLine,
@@ -10,6 +11,8 @@ interface ProjectState {
   createProject: (name: string) => void;
 
   setAudioFile: (audioFile: string) => void;
+
+  setVideoFile: (videoFile: string) => void;
 
   setLyrics: (lyrics: LyricLine[]) => void;
 }
@@ -55,6 +58,21 @@ export const useProjectStore = create<ProjectState>((set) => ({
           ...state.project,
 
           audioFile,
+
+          updatedAt: new Date(),
+        },
+      };
+    }),
+
+  setVideoFile: (videoFile) =>
+    set((state) => {
+      if (!state.project) return state;
+
+      return {
+        project: {
+          ...state.project,
+
+          videoFile,
 
           updatedAt: new Date(),
         },

@@ -14,104 +14,175 @@ import {
     useEditorStore,
 } from "@/stores/editor.store";
 
+import {
+    useProjectStore,
+} from "@/stores/project.store";
+
+
 interface ExportResult {
+
     canceled?: boolean;
+
     outputPath?: string;
+
 }
 
+
 interface ExportProgress {
+
     progress?: number;
-    stage?: "frames" | "ffmpeg" | "done";
+
+    stage?:
+        | "frames"
+        | "ffmpeg"
+        | "done";
+
     current?: number;
+
     total?: number;
+
     message?: string;
+
 }
+
 
 export default function ExportPage() {
 
-    const lyrics = useLyricsStore(
-        state => state.lyrics
-    );
+    // =========================================================
+    // LYRICS
+    // =========================================================
 
-    const audioRef = useEditorStore(
-        state => state.audioRef
-    );
+    const lyrics =
+        useLyricsStore(
+            state =>
+                state.lyrics
+        );
+
+
+    // =========================================================
+    // PROJECT
+    // =========================================================
+
+    const project =
+        useProjectStore(
+            state =>
+                state.project
+        );
+
+
+    // =========================================================
+    // AUDIO
+    // =========================================================
+
+    const audioRef =
+        useEditorStore(
+            state =>
+                state.audioRef
+        );
+
+
+    // =========================================================
+    // STATE
+    // =========================================================
 
     const [exporting, setExporting] =
         useState(false);
 
+
     const [progress, setProgress] =
         useState(0);
+
 
     const [message, setMessage] =
         useState("");
 
+
     const [outputPath, setOutputPath] =
         useState("");
 
-    /*
-     * =========================
-     * AUDIO DURATION
-     * =========================
-     */
+
+    // =========================================================
+    // DURATION
+    // =========================================================
 
     const duration =
         audioRef?.duration ?? 0;
 
-    /*
-     * =========================
-     * CAN EXPORT
-     * =========================
-     */
+
+    // =========================================================
+    // FILES
+    // =========================================================
+
+    const videoFile =
+        project?.videoFile;
+
+
+    const audioFile =
+        project?.audioFile;
+
+
+    // =========================================================
+    // WORD COUNT
+    // =========================================================
+
+    const wordCount =
+        useMemo(
+
+            () => {
+
+                return lyrics.reduce(
+
+                    (
+                        total,
+                        line
+                    ) => {
+
+                        return (
+                            total +
+                            line.words.length
+                        );
+
+                    },
+
+                    0
+
+                );
+
+            },
+
+            [lyrics]
+
+        );
+
+
+    // =========================================================
+    // CAN EXPORT
+    // =========================================================
 
     const canExport =
         lyrics.length > 0 &&
+
         duration > 0 &&
+
+        !!videoFile &&
+
+        !!audioFile &&
+
         !exporting;
 
-    /*
-     * =========================
-     * WORD COUNT
-     * =========================
-     */
 
-    const wordCount = useMemo(
-        () => {
-
-            return lyrics.reduce(
-                (
-                    total,
-                    line
-                ) => {
-
-                    return (
-                        total +
-                        line.words.length
-                    );
-                },
-                0
-            );
-
-        },
-        [lyrics]
-    );
-
-    /*
-     * =========================
-     * EXPORT PROGRESS
-     * =========================
-     */
+    // =========================================================
+    // PROGRESS LISTENER
+    // =========================================================
 
     useEffect(() => {
 
         const removeListener =
             window.electronAPI.on<ExportProgress>(
-                "export:progress",
-                (data) => {
 
-                    /*
-                     * Progress %
-                     */
+                "export:progress",
+
+                data => {
 
                     if (
                         typeof data?.progress ===
@@ -119,21 +190,27 @@ export default function ExportPage() {
                     ) {
 
                         setProgress(
+
                             Math.max(
+
                                 0,
+
                                 Math.min(
+
                                     100,
+
                                     Math.round(
                                         data.progress
                                     )
+
                                 )
+
                             )
+
                         );
+
                     }
 
-                    /*
-                     * Frame rendering
-                     */
 
                     if (
                         data?.stage ===
@@ -141,29 +218,33 @@ export default function ExportPage() {
                     ) {
 
                         if (
+
                             typeof data.current ===
                             "number" &&
+
                             typeof data.total ===
                             "number"
+
                         ) {
 
                             setMessage(
-                                `Đang tạo frame ${data.current}/${data.total}...`
+
+                                `Đang tạo lyric frame ${data.current}/${data.total}...`
+
                             );
 
                         }
+
                         else {
 
                             setMessage(
-                                "Đang tạo frame..."
+                                "Đang tạo lyric frames..."
                             );
 
                         }
+
                     }
 
-                    /*
-                     * FFmpeg
-                     */
 
                     if (
                         data?.stage ===
@@ -171,13 +252,11 @@ export default function ExportPage() {
                     ) {
 
                         setMessage(
-                            "FFmpeg đang tạo video..."
+                            "Đang ghép video + audio + lyrics..."
                         );
+
                     }
 
-                    /*
-                     * Done
-                     */
 
                     if (
                         data?.stage ===
@@ -189,11 +268,9 @@ export default function ExportPage() {
                         setMessage(
                             "Export hoàn tất."
                         );
+
                     }
 
-                    /*
-                     * Custom message
-                     */
 
                     if (
                         data?.message
@@ -202,9 +279,13 @@ export default function ExportPage() {
                         setMessage(
                             data.message
                         );
+
                     }
+
                 }
+
             );
+
 
         return () => {
 
@@ -214,21 +295,19 @@ export default function ExportPage() {
 
     }, []);
 
-    /*
-     * =========================
-     * EXPORT
-     * =========================
-     */
+
+    // =========================================================
+    // EXPORT
+    // =========================================================
 
     async function handleExport() {
 
         if (!canExport) {
+
             return;
+
         }
 
-        /*
-         * Reset UI
-         */
 
         setExporting(true);
 
@@ -240,35 +319,89 @@ export default function ExportPage() {
 
         setOutputPath("");
 
+
         try {
 
-            /*
-             * =========================
-             * IPC EXPORT
-             * =========================
-             */
+            console.log(
+                "EXPORT PROJECT:",
+                {
+
+                    videoFile,
+
+                    audioFile,
+
+                    duration,
+
+                    lyrics:
+                        lyrics.length,
+
+                }
+
+            );
+
 
             const result =
                 await window.electronAPI.invoke<ExportResult>(
+
                     "export:video",
+
                     {
+
+                        // ================================
+                        // VIDEO BACKGROUND
+                        // ================================
+
+                        videoFile:
+
+
+                            videoFile!,
+
+
+                        // ================================
+                        // AUDIO / VOCAL
+                        // ================================
+
+                        audioFile:
+
+
+                            audioFile!,
+
+
+                        // ================================
+                        // LYRICS
+                        // ================================
+
                         lyrics,
+
+
+                        // ================================
+                        // DURATION
+                        // ================================
 
                         duration,
 
-                        width: 1920,
 
-                        height: 1080,
+                        // ================================
+                        // CANVAS
+                        // ================================
 
-                        fps: 30,
+                        width:
+                            1920,
+
+                        height:
+                            1080,
+
+                        fps:
+                            30,
+
                     }
+
                 );
 
-            /*
-             * =========================
-             * CANCEL
-             * =========================
-             */
+
+            // =================================================
+            // CANCEL
+            // =================================================
 
             if (
                 result?.canceled
@@ -281,13 +414,13 @@ export default function ExportPage() {
                 );
 
                 return;
+
             }
 
-            /*
-             * =========================
-             * SUCCESS
-             * =========================
-             */
+
+            // =================================================
+            // SUCCESS
+            // =================================================
 
             if (
                 result?.outputPath
@@ -304,17 +437,17 @@ export default function ExportPage() {
                 );
 
                 return;
+
             }
 
-            /*
-             * Không có output
-             */
 
             throw new Error(
                 "Export không trả về outputPath."
             );
 
         }
+
+
         catch (error) {
 
             console.error(
@@ -322,72 +455,160 @@ export default function ExportPage() {
                 error
             );
 
+
             setProgress(0);
 
+
             setMessage(
+
                 error instanceof Error
+
                     ? error.message
+
                     : "Export thất bại."
+
             );
 
         }
+
+
         finally {
 
             setExporting(false);
 
         }
+
     }
 
-    /*
-     * =========================
-     * UI
-     * =========================
-     */
+
+    // =========================================================
+    // UI
+    // =========================================================
 
     return (
 
         <div
             style={{
-                padding: 24,
-                maxWidth: 700,
-                margin: "0 auto",
+
+                padding:
+                    24,
+
+                maxWidth:
+                    700,
+
+                margin:
+                    "0 auto",
+
             }}
         >
 
             <h2>
-                Export
+                Export Karaoke Video
             </h2>
 
+
             <p>
-                Xuất lyric karaoke
-                với nền trong suốt.
+                Xuất video karaoke hoàn chỉnh
+                với video nền, audio và lyrics.
             </p>
 
-            {/* =========================
-                EXPORT INFO
-            ========================= */}
+
+            {/* =================================================
+                PROJECT INFO
+            ================================================= */}
 
             <div
                 style={{
-                    marginTop: 20,
-                    padding: 20,
-                    border: "1px solid #333",
-                    borderRadius: 10,
+
+                    marginTop:
+                        20,
+
+                    padding:
+                        20,
+
+                    border:
+                        "1px solid #333",
+
+                    borderRadius:
+                        10,
+
                 }}
             >
 
+                {/* VIDEO */}
+
                 <div>
+
+                    <strong>
+                        Video Background
+                    </strong>
+
+                    <div
+                        style={{
+                            marginTop: 4,
+                            wordBreak:
+                                "break-all",
+                        }}
+                    >
+
+                        {videoFile
+                            ? videoFile
+                            : "❌ Chưa chọn video"}
+
+                    </div>
+
+                </div>
+
+
+                {/* AUDIO */}
+
+                <div
+                    style={{
+                        marginTop: 16,
+                    }}
+                >
+
+                    <strong>
+                        Audio / Vocal
+                    </strong>
+
+                    <div
+                        style={{
+                            marginTop: 4,
+                            wordBreak:
+                                "break-all",
+                        }}
+                    >
+
+                        {audioFile
+                            ? audioFile
+                            : "❌ Chưa chọn audio"}
+
+                    </div>
+
+                </div>
+
+
+                {/* FORMAT */}
+
+                <div
+                    style={{
+                        marginTop: 16,
+                    }}
+                >
 
                     <strong>
                         Format
                     </strong>
 
                     <div>
-                        WebM / VP9 Alpha
+                        MP4 / H.264 + AAC
                     </div>
 
                 </div>
 
+
+                {/* RESOLUTION */}
 
                 <div
                     style={{
@@ -406,6 +627,8 @@ export default function ExportPage() {
                 </div>
 
 
+                {/* FPS */}
+
                 <div
                     style={{
                         marginTop: 12,
@@ -422,6 +645,8 @@ export default function ExportPage() {
 
                 </div>
 
+
+                {/* LYRICS */}
 
                 <div
                     style={{
@@ -445,6 +670,8 @@ export default function ExportPage() {
                 </div>
 
 
+                {/* DURATION */}
+
                 <div
                     style={{
                         marginTop: 12,
@@ -458,7 +685,9 @@ export default function ExportPage() {
                     <div>
 
                         {duration > 0
+
                             ? `${duration.toFixed(2)} seconds`
+
                             : "Chưa có audio"}
 
                     </div>
@@ -468,27 +697,78 @@ export default function ExportPage() {
             </div>
 
 
-            {/* =========================
+            {/* =================================================
+                WARNING
+            ================================================= */}
+
+            {!videoFile && (
+
+                <div
+                    style={{
+                        marginTop: 16,
+                        padding: 12,
+                        borderRadius: 8,
+                    }}
+                >
+
+                    ⚠️ Bạn chưa import
+                    video nền.
+
+                </div>
+
+            )}
+
+
+            {!audioFile && (
+
+                <div
+                    style={{
+                        marginTop: 8,
+                        padding: 12,
+                        borderRadius: 8,
+                    }}
+                >
+
+                    ⚠️ Bạn chưa import
+                    audio / vocal.
+
+                </div>
+
+            )}
+
+
+            {/* =================================================
                 EXPORT BUTTON
-            ========================= */}
+            ================================================= */}
 
             <button
+
                 type="button"
+
                 onClick={
                     handleExport
                 }
-                disabled={!canExport}
-                style={{
-                    marginTop: 20,
 
-                    width: "100%",
+                disabled={
+                    !canExport
+                }
+
+                style={{
+
+                    marginTop:
+                        20,
+
+                    width:
+                        "100%",
 
                     padding:
                         "14px 20px",
 
-                    borderRadius: 8,
+                    borderRadius:
+                        8,
 
-                    border: "none",
+                    border:
+                        "none",
 
                     cursor:
                         canExport
@@ -500,20 +780,24 @@ export default function ExportPage() {
                             ? 1
                             : 0.5,
 
-                    fontWeight: 700,
+                    fontWeight:
+                        700,
+
                 }}
             >
 
                 {exporting
+
                     ? "Exporting..."
-                    : "Export Transparent Video"}
+
+                    : "Export Karaoke Video"}
 
             </button>
 
 
-            {/* =========================
+            {/* =================================================
                 PROGRESS
-            ========================= */}
+            ================================================= */}
 
             {exporting && (
 
@@ -525,12 +809,16 @@ export default function ExportPage() {
 
                     <div
                         style={{
-                            display: "flex",
+
+                            display:
+                                "flex",
 
                             justifyContent:
                                 "space-between",
 
-                            marginBottom: 8,
+                            marginBottom:
+                                8,
+
                         }}
                     >
 
@@ -547,9 +835,12 @@ export default function ExportPage() {
 
                     <div
                         style={{
-                            width: "100%",
 
-                            height: 8,
+                            width:
+                                "100%",
+
+                            height:
+                                8,
 
                             background:
                                 "#222",
@@ -559,11 +850,13 @@ export default function ExportPage() {
 
                             overflow:
                                 "hidden",
+
                         }}
                     >
 
                         <div
                             style={{
+
                                 width:
                                     `${progress}%`,
 
@@ -575,6 +868,7 @@ export default function ExportPage() {
 
                                 transition:
                                     "width 0.15s",
+
                             }}
                         />
 
@@ -585,23 +879,28 @@ export default function ExportPage() {
             )}
 
 
-            {/* =========================
+            {/* =================================================
                 MESSAGE
-            ========================= */}
+            ================================================= */}
 
             {!exporting &&
                 message && (
 
                     <div
                         style={{
-                            marginTop: 20,
 
-                            padding: 12,
+                            marginTop:
+                                20,
 
-                            borderRadius: 8,
+                            padding:
+                                12,
+
+                            borderRadius:
+                                8,
 
                             background:
                                 "#181818",
+
                         }}
                     >
 
@@ -612,19 +911,23 @@ export default function ExportPage() {
                 )}
 
 
-            {/* =========================
-                OUTPUT FILE
-            ========================= */}
+            {/* =================================================
+                OUTPUT
+            ================================================= */}
 
             {outputPath && (
 
                 <div
                     style={{
-                        marginTop: 12,
 
-                        padding: 12,
+                        marginTop:
+                            12,
 
-                        fontSize: 13,
+                        padding:
+                            12,
+
+                        fontSize:
+                            13,
 
                         wordBreak:
                             "break-all",
@@ -632,7 +935,9 @@ export default function ExportPage() {
                         border:
                             "1px solid #333",
 
-                        borderRadius: 8,
+                        borderRadius:
+                            8,
+
                     }}
                 >
 
@@ -649,5 +954,7 @@ export default function ExportPage() {
             )}
 
         </div>
+
     );
+
 }
