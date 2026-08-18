@@ -21,64 +21,44 @@ export default function SyncRecorder() {
     const startTime =
         useRef(0);
 
+
     useEffect(() => {
 
-        function updatePreview() {
+        /*
+         * =========================
+         * KIỂM TRA ĐANG NHẬP TEXT
+         * =========================
+         */
 
-            if (!holding.current) return;
-
-            if (!audio) return;
-
-            const state =
-                useLyricsStore.getState();
-
-            const line =
-                state.lyrics.find(
-                    line =>
-                        line.words.some(
-                            word => !word.synced
-                        )
-                );
-
-            if (!line) return;
-
-            const word =
-                line.words.find(
-                    word => !word.synced
-                );
-
-            if (!word) return;
-
-            state.updateWord(
-                line.id,
-                word.id,
-                {
-                    end: audio.currentTime
-                }
-            );
-
-            raf.current =
-                requestAnimationFrame(
-                    updatePreview
-                );
-
-        }
-
-        function keyDown(
+        function isTyping(
             e: KeyboardEvent
         ) {
 
-            if (
-                e.code !== "Space"
-            )
-                return;
+            const target =
+                e.target as HTMLElement | null;
 
-            if (
-                holding.current
-            )
-                return;
+            if (!target) {
+                return false;
+            }
 
-            e.preventDefault();
+            return (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable
+            );
+        }
+
+
+        /*
+         * =========================
+         * UPDATE WORD PREVIEW
+         * =========================
+         */
+
+        function updatePreview() {
+
+            if (!holding.current)
+                return;
 
             if (!audio)
                 return;
@@ -90,7 +70,8 @@ export default function SyncRecorder() {
                 state.lyrics.find(
                     line =>
                         line.words.some(
-                            word => !word.synced
+                            word =>
+                                !word.synced
                         )
                 );
 
@@ -99,16 +80,131 @@ export default function SyncRecorder() {
 
             const word =
                 line.words.find(
-                    word => !word.synced
+                    word =>
+                        !word.synced
                 );
 
             if (!word)
                 return;
 
+            state.updateWord(
+                line.id,
+                word.id,
+                {
+                    end:
+                        audio.currentTime
+                }
+            );
+
+            raf.current =
+                requestAnimationFrame(
+                    updatePreview
+                );
+        }
+
+
+        /*
+         * =========================
+         * SPACE DOWN
+         * =========================
+         */
+
+        function keyDown(
+            e: KeyboardEvent
+        ) {
+
+            /*
+             * Không phải Space
+             */
+
+            if (
+                e.code !== "Space"
+            ) {
+                return;
+            }
+
+
+            /*
+             * ĐANG GÕ TEXT
+             *
+             * → Không sync
+             * → Không preventDefault
+             * → Space được textarea xử lý
+             */
+
+            if (isTyping(e)) {
+                return;
+            }
+
+
+            /*
+             * Đang giữ Space
+             */
+
+            if (
+                holding.current
+            ) {
+                return;
+            }
+
+
+            /*
+             * Từ đây trở xuống
+             * Space mới là phím Sync
+             */
+
+            e.preventDefault();
+
+
+            if (!audio)
+                return;
+
+
+            const state =
+                useLyricsStore.getState();
+
+
+            /*
+             * Tìm line còn word chưa sync
+             */
+
+            const line =
+                state.lyrics.find(
+                    line =>
+                        line.words.some(
+                            word =>
+                                !word.synced
+                        )
+                );
+
+            if (!line)
+                return;
+
+
+            /*
+             * Tìm word tiếp theo
+             */
+
+            const word =
+                line.words.find(
+                    word =>
+                        !word.synced
+                );
+
+            if (!word)
+                return;
+
+
+            /*
+             * Bắt đầu giữ Space
+             */
+
             holding.current = true;
+
 
             startTime.current =
                 audio.currentTime;
+
 
             state.updateWord(
                 line.id,
@@ -124,36 +220,79 @@ export default function SyncRecorder() {
                 }
             );
 
+
             updatePreview();
+
 
             console.log(
                 "SYNC START",
                 word.word,
                 startTime.current
             );
-
         }
+
+
+        /*
+         * =========================
+         * SPACE UP
+         * =========================
+         */
 
         function keyUp(
             e: KeyboardEvent
         ) {
 
+            /*
+             * Không phải Space
+             */
+
             if (
                 e.code !== "Space"
-            )
+            ) {
                 return;
+            }
+
+
+            /*
+             * ĐANG GÕ TEXT
+             *
+             * → Không sync
+             * → Không preventDefault
+             */
+
+            if (isTyping(e)) {
+                return;
+            }
+
+
+            /*
+             * Không có word đang sync
+             */
 
             if (
                 !holding.current
-            )
+            ) {
                 return;
+            }
+
+
+            /*
+             * Kết thúc sync
+             */
 
             e.preventDefault();
+
 
             if (!audio)
                 return;
 
+
             holding.current = false;
+
+
+            /*
+             * Dừng requestAnimationFrame
+             */
 
             if (raf.current) {
 
@@ -162,33 +301,55 @@ export default function SyncRecorder() {
                 );
 
                 raf.current = null;
-
             }
+
+
+            /*
+             * Thời gian kết thúc
+             */
 
             const end =
                 audio.currentTime;
 
+
             const state =
                 useLyricsStore.getState();
+
+
+            /*
+             * Tìm line đang sync
+             */
 
             const line =
                 state.lyrics.find(
                     line =>
                         line.words.some(
-                            word => !word.synced
+                            word =>
+                                !word.synced
                         )
                 );
 
             if (!line)
                 return;
 
+
+            /*
+             * Tìm word đang sync
+             */
+
             const word =
                 line.words.find(
-                    word => !word.synced
+                    word =>
+                        !word.synced
                 );
 
             if (!word)
                 return;
+
+
+            /*
+             * Lưu timing
+             */
 
             state.updateWord(
                 line.id,
@@ -203,17 +364,27 @@ export default function SyncRecorder() {
                 }
             );
 
+
             console.log(
                 "SYNC END",
                 {
-                    word: word.word,
+                    word:
+                        word.word,
+
                     start:
                         startTime.current,
+
                     end
                 }
             );
-
         }
+
+
+        /*
+         * =========================
+         * LISTENER
+         * =========================
+         */
 
         window.addEventListener(
             "keydown",
@@ -224,6 +395,13 @@ export default function SyncRecorder() {
             "keyup",
             keyUp
         );
+
+
+        /*
+         * =========================
+         * CLEANUP
+         * =========================
+         */
 
         return () => {
 
@@ -237,18 +415,20 @@ export default function SyncRecorder() {
                 keyUp
             );
 
+
             if (raf.current) {
 
                 cancelAnimationFrame(
                     raf.current
                 );
 
+                raf.current = null;
             }
 
         };
 
     }, [audio]);
 
-    return null;
 
+    return null;
 }

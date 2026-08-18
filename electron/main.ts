@@ -15,7 +15,9 @@ import {
 import {
   registerAIIPC
 } from "./ipc/ai.ipc";
-
+import {
+  registerExportIPC
+} from "./ipc/export.ipc";
 
 import {
   startMediaServer
@@ -144,6 +146,7 @@ const mediaRoot =
   registerAIIPC();
 
 registerProjectIPC();
+registerExportIPC();
 
   createWindow();
 

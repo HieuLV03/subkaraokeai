@@ -56,7 +56,11 @@
     background:#f59e0b;
 }
 
-
+.timing-line-selected {
+    outline: 2px solid #00aaff;
+    outline-offset: 2px;
+    background: rgba(0, 170, 255, 0.06);
+}
 .reset-all{
     background:#dc2626;
 }

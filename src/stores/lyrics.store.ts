@@ -137,9 +137,9 @@ export const defaultLyricStyle: LyricStyle = {
 
     shadow: true,
 
-    x: 100,
+    x: 330,
 
-    y: 150,
+    y: 180,
 
     align: "center"
 

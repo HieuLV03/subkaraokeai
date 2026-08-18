@@ -12,6 +12,11 @@ export default function SubtitleLine({
     activeColor,
 }: any) {
 
+
+    // ========================================
+    // STORE
+    // ========================================
+
     const selectLine = useLyricsStore(
         (state) => state.selectLine
     );
@@ -25,33 +30,93 @@ export default function SubtitleLine({
     );
 
 
+    // ========================================
+    // SAFETY
+    // ========================================
+
     if (!line?.words) {
+
         return null;
+
     }
 
 
-    const style = line.style ?? {};
+    // ========================================
+    // STYLE
+    // ========================================
+
+    const style =
+        line.style ?? {};
+
+
+    // ========================================
+    // POSITION
+    // ========================================
+
+    const x =
+        style.x ?? 330;
+
+    const y =
+        style.y ?? 180;
+
+
+    // ========================================
+    // TEXT STYLE
+    // ========================================
+
+    const fontFamily =
+        style.fontFamily ??
+        "Arial";
+
+    const fontSize =
+        style.fontSize ??
+        40;
+
+    const textColor =
+        style.color ??
+        color ??
+        "#ffffff";
+
+    const highlightColor =
+        style.activeColor ??
+        activeColor ??
+        "#00ff66";
+
+    const outline =
+        style.outline ??
+        "#000000";
+
+    const outlineWidth =
+        style.outlineWidth ??
+        2;
+
+    const shadow =
+        style.shadow ??
+        true;
+
+    const align =
+        style.align ??
+        "center";
+
+
+    // ========================================
+    // SELECTED
+    // ========================================
 
     const isSelected =
         selectedLineId === line.id;
 
 
-    /*
-     * Vị trí riêng của line
-     */
-    const x = style.x ?? 100;
-    const y = style.y ?? 150;
-
-
-    // ==========================
+    // ========================================
     // DRAG
-    // ==========================
+    // ========================================
 
     const handleMouseDown = (
         e: React.MouseEvent<HTMLDivElement>
     ) => {
 
         e.preventDefault();
+
         e.stopPropagation();
 
 
@@ -65,8 +130,11 @@ export default function SubtitleLine({
             e.clientY;
 
 
-        const startX = x;
-        const startY = y;
+        const startX =
+            x;
+
+        const startY =
+            y;
 
 
         const handleMouseMove = (
@@ -83,12 +151,15 @@ export default function SubtitleLine({
 
 
             moveLine(
+
                 line.id,
 
                 startX + deltaX,
 
                 startY + deltaY
+
             );
+
         };
 
 
@@ -103,6 +174,7 @@ export default function SubtitleLine({
                 "mouseup",
                 handleMouseUp
             );
+
         };
 
 
@@ -119,61 +191,116 @@ export default function SubtitleLine({
     };
 
 
+    // ========================================
+    // RENDER
+    // ========================================
+
     return (
 
-        <div
-            className={
-                isSelected
-                    ? "subtitle-drag-box subtitle-drag-box-selected"
-                    : "subtitle-drag-box"
-            }
+      <div
 
-            onMouseDown={
-                handleMouseDown
-            }
+    className={
+        isSelected
+            ? "subtitle-drag-box subtitle-drag-box-selected"
+            : "subtitle-drag-box"
+    }
 
-            style={{
-                position: "relative",
+    onMouseDown={
+        handleMouseDown
+    }
 
-                display: "inline-block",
+   style={{
 
-                transform:
-                    `translate(${x}px, ${y}px)`,
+    position: "absolute",
 
-                cursor: "move",
+    left: `${x}px`,
 
-                /*
-                 * Chỉ chính wrapper nhận chuột.
-                 */
-                pointerEvents: "auto",
+    top: `${y}px`,
 
-                userSelect: "none",
+    transform: "translate(-50%, -50%)",
 
-                zIndex: 10,
-            }}
-        >
+    display: "inline-block",
+
+    cursor: "move",
+
+    pointerEvents: "auto",
+
+    userSelect: "none",
+
+    zIndex:
+        isSelected
+            ? 100
+            : 10,
+
+}}
+
+>
+
 
             <div
+
                 className="subtitle-line"
+
+                style={{
+
+                    fontFamily:
+                        fontFamily,
+
+                    fontSize:
+                        `${fontSize}px`,
+
+                    textAlign:
+                        align,
+
+                }}
+
             >
 
                 {line.words.map(
                     (word: any) => (
 
                         <SubtitleWord
-                            key={word.id}
 
-                            word={word}
+                            key={
+                                word.id
+                            }
+
+                            word={
+                                word
+                            }
 
                             currentTime={
                                 currentTime
                             }
 
-                            color={color}
+                            color={
+                                textColor
+                            }
 
                             activeColor={
-                                activeColor
+                                highlightColor
                             }
+
+                            fontFamily={
+                                fontFamily
+                            }
+
+                            fontSize={
+                                fontSize
+                            }
+
+                            outline={
+                                outline
+                            }
+
+                            outlineWidth={
+                                outlineWidth
+                            }
+
+                            shadow={
+                                shadow
+                            }
+
                         />
 
                     )
@@ -184,4 +311,5 @@ export default function SubtitleLine({
         </div>
 
     );
+
 }

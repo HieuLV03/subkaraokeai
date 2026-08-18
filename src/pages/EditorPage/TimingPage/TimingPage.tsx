@@ -16,6 +16,13 @@ const resetLastTiming = useLyricsStore(
 const setWorkspace = useEditorStore(
     state => state.setWorkspace
 );
+const selectedLineId = useLyricsStore(
+    state => state.selectedLineId
+);
+
+const selectLine = useLyricsStore(
+    state => state.selectLine
+);
     const lyrics = useLyricsStore(
         state => state.lyrics
     );
@@ -38,10 +45,19 @@ const setWorkspace = useEditorStore(
 
                 lyrics.map(line => (
 
-                    <div
-                        key={line.id}
-                        className="timing-line"
-                    >
+<div
+    key={line.id}
+
+    className={
+        `timing-line ${
+            selectedLineId === line.id
+                ? "timing-line-selected"
+                : ""
+        }`
+    }
+
+    onClick={() => selectLine(line.id)}
+>
 
                         {/* LINE */}
 

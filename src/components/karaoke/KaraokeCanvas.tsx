@@ -18,7 +18,6 @@ export default function KaraokeCanvas() {
     );
 
 
-    // Lấy TẤT CẢ line đang nằm trong khoảng thời gian hiện tại
     const currentLines = lyrics.filter(
         (line) =>
             currentTime >= line.start &&
@@ -27,18 +26,24 @@ export default function KaraokeCanvas() {
 
 
     return (
+
         <div className="karaoke-canvas">
 
             {currentLines.length === 0 && (
+
                 <div className="waiting-text">
+
                     Waiting lyric...
+
                 </div>
+
             )}
 
 
             {currentLines.map((line) => (
 
                 <SubtitleLine
+
                     key={line.id}
 
                     line={line}
@@ -48,10 +53,12 @@ export default function KaraokeCanvas() {
                     color="#ffffff"
 
                     activeColor="#00ff66"
+
                 />
 
             ))}
 
         </div>
+
     );
 }
