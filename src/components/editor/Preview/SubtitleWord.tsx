@@ -27,7 +27,7 @@ export default function SubtitleWord({
     activeColor,
 
     fontFamily = "Arial",
-    fontSize = 40,
+    fontSize = 30,
 
     outline = "#000000",
     outlineWidth = 2,

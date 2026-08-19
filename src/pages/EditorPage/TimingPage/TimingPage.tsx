@@ -61,96 +61,66 @@ const selectLine = useLyricsStore(
 
                         {/* LINE */}
 
-                        <div className="timing-line-title">
+                   <div className="timing-line-left">
 
-                            {line.text}
+    <div className="timing-line-title">
+        {line.text}
+    </div>
 
-                        </div>
+    <div className="timing-line-time">
 
-                        {/* LINE TIME */}
+        <label>
+            Start
 
-                        <div className="timing-line-time">
+            <input
+                type="number"
+                step="0.001"
+                value={line.start}
+                onChange={e => {
+                    updateLine(
+                        line.id,
+                        {
+                            start: Number(
+                                e.target.value
+                            )
+                        }
+                    );
+                }}
+            />
+        </label>
 
-                            <label>
+        <label>
+            End
 
-                                Start
+            <input
+                type="number"
+                step="0.001"
+                value={line.end}
+                onChange={e => {
+                    updateLine(
+                        line.id,
+                        {
+                            end: Number(
+                                e.target.value
+                            )
+                        }
+                    );
+                }}
+            />
+        </label>
 
-                                <input
-                                    type="number"
-                                    step="0.001"
-                                    value={line.start}
-                                    onChange={e => {
+        <span>
+            Duration :{" "}
+            {(line.end - line.start).toFixed(3)}
+            s
+        </span>
 
-                                        updateLine(
+    </div>
 
-                                            line.id,
+</div>
 
-                                            {
 
-                                                start: Number(
-                                                    e.target.value
-                                                )
-
-                                            }
-
-                                        );
-
-                                    }}
-                                />
-
-                            </label>
-
-                            <label>
-
-                                End
-
-                                <input
-                                    type="number"
-                                    step="0.001"
-                                    value={line.end}
-                                    onChange={e => {
-
-                                        updateLine(
-
-                                            line.id,
-
-                                            {
-
-                                                end: Number(
-                                                    e.target.value
-                                                )
-
-                                            }
-
-                                        );
-
-                                    }}
-                                />
-
-                            </label>
-
-                            <span>
-
-                                Duration :
-
-                                {
-
-                                    (
-                                        line.end -
-                                        line.start
-                                    ).toFixed(3)
-
-                                }
-
-                                s
-
-                            </span>
-
-                        </div>
-
-                        {/* WORD */}
-
-                        <div className="timing-words">
+<div className="timing-words">
 
                             {
 

@@ -197,14 +197,6 @@ export default function HomePage() {
               }
             >
 
-              <strong>
-                1
-              </strong>
-
-              <span>
-                Video Background
-              </span>
-
             </div>
 
 
@@ -218,91 +210,11 @@ export default function HomePage() {
               }
             >
 
-              <strong>
-                2
-              </strong>
-
-              <span>
-                Vocal / Song
-              </span>
-
             </div>
 
 
-            <div
-              className="workflow-step disabled"
-            >
-
-              <strong>
-                3
-              </strong>
-
-              <span>
-                AI Lyrics
-              </span>
-
-            </div>
-
-
-            <div
-              className="workflow-step disabled"
-            >
-
-              <strong>
-                4
-              </strong>
-
-              <span>
-                Editor
-              </span>
-
-            </div>
 
           </div>
-
-
-          {/* ==================================================
-              PREVIEW
-          ================================================== */}
-
-          <div className="preview">
-
-            <div className="preview-inner">
-
-              {project.videoFile ? (
-
-                <>
-                  🎬
-
-                  <br />
-
-                  Video Background Ready
-
-                  <br />
-
-                  <small>
-                    {project.videoFile}
-                  </small>
-                </>
-
-              ) : (
-
-                <>
-                  1920 × 1080 Preview
-
-                  <br />
-
-                  <small>
-                    Please import a video background
-                  </small>
-                </>
-
-              )}
-
-            </div>
-
-          </div>
-
 
           {/* ==================================================
               WAVEFORM
@@ -331,14 +243,7 @@ export default function HomePage() {
               LYRICS
           ================================================== */}
 
-          <div className="lyrics">
-
-            {project.audioFile
-              ? "AI lyrics will be generated..."
-              : "Lyrics will appear here..."
-            }
-
-          </div>
+   
 
 
           {/* ==================================================

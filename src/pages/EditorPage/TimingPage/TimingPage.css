@@ -8,7 +8,6 @@
 .timing-content{
     flex:1;
     overflow:auto;
-    padding:20px;
     display:flex;
     flex-direction:column;
     gap:20px;
@@ -20,6 +19,7 @@
     justify-content:space-between;
     align-items:center;
     padding:16px 24px;
+    height: 51px;
     border-top:1px solid #374151;
     background:#111827;
 }
@@ -34,16 +34,24 @@
     font-weight:600;
 }
 
-.timing-line{
+.timing-line {
+    display: grid;
 
-    background:#1f2937;
+    grid-template-columns: 320px 1fr;
 
-    border:1px solid #374151;
+    gap: 120px;
 
-    border-radius:12px;
+    background: #1f2937;
 
-    padding:18px;
+    border: 1px solid #374151;
 
+    border-radius: 12px;
+
+    padding: 10px 99px;
+}
+
+.timing-line-left {
+    min-width: 0;
 }
 .timing-actions{
     display:flex;
@@ -80,11 +88,11 @@
 
     display:flex;
 
-    gap:20px;
+    gap:15px;
 
     align-items:center;
 
-    margin-bottom:20px;
+    margin-bottom:12px;
 
 }
 
@@ -110,14 +118,14 @@
 
 }
 
-.timing-words{
+.timing-words {
+    display: flex;
 
-    display:flex;
+    flex-direction: column;
 
-    flex-direction:column;
+    gap: 10px;
 
-    gap:10px;
-
+    min-width: 0;
 }
 
 .timing-word{
@@ -126,12 +134,12 @@
 
     grid-template-columns:
 
-        1fr
+        .2fr
         90px
         90px
-        40px;
+        30px;
 
-    gap:12px;
+    gap:1px;
 
     align-items:center;
 

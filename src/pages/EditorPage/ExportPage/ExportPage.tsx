@@ -80,7 +80,11 @@ export default function ExportPage() {
                 state.audioRef
         );
 
-
+const setWorkspace =
+    useEditorStore(
+        state =>
+            state.setWorkspace
+    );
     // =========================================================
     // STATE
     // =========================================================
@@ -736,64 +740,73 @@ export default function ExportPage() {
 
             )}
 
+{/* =================================================
+    ACTION BUTTONS
+================================================= */}
 
-            {/* =================================================
-                EXPORT BUTTON
-            ================================================= */}
+<div
+    style={{
+        display: "flex",
+        gap: 10,
+        marginTop: 20,
+    }}
+>
 
-            <button
+    {/* PREVIOUS */}
 
-                type="button"
+    <button
+        type="button"
+        onClick={() =>
+            setWorkspace(
+                "style"
+            )
+        }
+        style={{
+            flex: 1,
+            padding: "14px 20px",
+            borderRadius: 8,
+            border: "1px solid #333",
+            background: "transparent",
+            cursor: "pointer",
+            fontWeight: 700,
+        }}
+    >
+        ← Previous
+    </button>
 
-                onClick={
-                    handleExport
-                }
 
-                disabled={
-                    !canExport
-                }
+    {/* EXPORT */}
 
-                style={{
+    <button
+        type="button"
+        onClick={
+            handleExport
+        }
+        disabled={
+            !canExport
+        }
+        style={{
+            flex: 2,
+            padding: "14px 20px",
+            borderRadius: 8,
+            border: "none",
+            cursor:
+                canExport
+                    ? "pointer"
+                    : "not-allowed",
+            opacity:
+                canExport
+                    ? 1
+                    : 0.5,
+            fontWeight: 700,
+        }}
+    >
+        {exporting
+            ? "Exporting..."
+            : "Export Karaoke Video"}
+    </button>
 
-                    marginTop:
-                        20,
-
-                    width:
-                        "100%",
-
-                    padding:
-                        "14px 20px",
-
-                    borderRadius:
-                        8,
-
-                    border:
-                        "none",
-
-                    cursor:
-                        canExport
-                            ? "pointer"
-                            : "not-allowed",
-
-                    opacity:
-                        canExport
-                            ? 1
-                            : 0.5,
-
-                    fontWeight:
-                        700,
-
-                }}
-            >
-
-                {exporting
-
-                    ? "Exporting..."
-
-                    : "Export Karaoke Video"}
-
-            </button>
-
+</div>
 
             {/* =================================================
                 PROGRESS

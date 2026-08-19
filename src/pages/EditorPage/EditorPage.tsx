@@ -29,136 +29,115 @@ export default function EditorPage() {
     );
 
 
-    return (
+  return (
 
-        <div className="editor-page">
+<div className="editor-page">
 
+    {/* ==================================
+        PREVIEW + AUDIO
+    ================================== */}
 
-            {/* ==================================
-                STEP
-            ================================== */}
+    <div className="editor-top">
 
-            <div className="editor-toolbar">
+        <div className="editor-audio">
 
-                <button
-                    className={
-                        currentWorkspace === "line"
-                            ? "active"
-                            : ""
-                    }
-                    disabled
-                >
-                    Edit Line
-                </button>
+            <AudioPlayer />
 
+            <SyncRecorder />
 
-                <button
-                    className={
-                        currentWorkspace === "timing"
-                            ? "active"
-                            : ""
-                    }
-                    disabled
-                >
-                    Timing
-                </button>
-
-
-                <button
-                    className={
-                        currentWorkspace === "style"
-                            ? "active"
-                            : ""
-                    }
-                    disabled
-                >
-                    Style
-                </button>
-
-
-                <button
-                    className={
-                        currentWorkspace === "export"
-                            ? "active"
-                            : ""
-                    }
-                    disabled
-                >
-                    Export
-                </button>
-
-            </div>
-
-
-            {/* ==================================
-                PREVIEW
-            ================================== */}
-
-            <div className="editor-top">
-
-                <div className="editor-preview">
-
-                    <Preview />
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================
-                AUDIO
-            ================================== */}
-
-            <div className="editor-audio">
-
-                <AudioPlayer />
-
-                <SyncRecorder />
-
-                <AudioPanel />
-
-            </div>
-
-
-            {/* ==================================
-                WORKSPACE
-            ================================== */}
-
-            <div className="editor-lyrics">
-
-
-                {currentWorkspace === "line" && (
-
-                    <EditLinePage />
-
-                )}
-
-
-                {currentWorkspace === "timing" && (
-
-                    <TimingPage />
-
-                )}
-
-
-                {currentWorkspace === "style" && (
-
-                    <StylePage />
-
-                )}
-
-
-                {currentWorkspace === "export" && (
-
-                    <ExportPage />
-
-                )}
-
-
-            </div>
+            <AudioPanel />
 
         </div>
 
-    );
+
+        <div className="editor-preview">
+
+            <Preview />
+
+        </div>
+
+    </div>
+
+
+    {/* ==================================
+        WORKSPACE
+    ================================== */}
+
+    <div className="editor-lyrics">
+
+        {currentWorkspace === "line" && (
+            <EditLinePage />
+        )}
+
+        {currentWorkspace === "timing" && (
+            <TimingPage />
+        )}
+
+        {currentWorkspace === "style" && (
+            <StylePage />
+        )}
+
+        {currentWorkspace === "export" && (
+            <ExportPage />
+        )}
+
+    </div>
+
+
+    {/* ==================================
+        TOOLBAR - FLOAT RIGHT
+    ================================== */}
+
+    <div className="editor-toolbar">
+
+        <button
+            className={
+                currentWorkspace === "line"
+                    ? "active"
+                    : ""
+            }
+            disabled
+        >
+            Edit Line
+        </button>
+
+        <button
+            className={
+                currentWorkspace === "timing"
+                    ? "active"
+                    : ""
+            }
+            disabled
+        >
+            Timing
+        </button>
+
+        <button
+            className={
+                currentWorkspace === "style"
+                    ? "active"
+                    : ""
+            }
+            disabled
+        >
+            Style
+        </button>
+
+        <button
+            className={
+                currentWorkspace === "export"
+                    ? "active"
+                    : ""
+            }
+            disabled
+        >
+            Export
+        </button>
+
+    </div>
+
+</div>
+
+);
 
 }

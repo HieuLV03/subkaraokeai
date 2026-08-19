@@ -78,13 +78,13 @@ export default function AudioControls({
 
         onClick={() =>
 
-          onSeek(currentTime - 1)
+          onSeek(currentTime - 5)
 
         }
 
       >
 
-        -1s
+        -5s
 
       </button>
 
@@ -92,13 +92,13 @@ export default function AudioControls({
 
         onClick={() =>
 
-          onSeek(currentTime + 1)
+          onSeek(currentTime + 5)
 
         }
 
       >
 
-        +1s
+        +5s
 
       </button>
 

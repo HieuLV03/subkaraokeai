@@ -70,7 +70,7 @@ export default function SubtitleLine({
 
     const fontSize =
         style.fontSize ??
-        40;
+        30;
 
     const textColor =
         style.color ??

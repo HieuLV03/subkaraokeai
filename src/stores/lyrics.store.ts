@@ -125,7 +125,7 @@ export const defaultLyricStyle: LyricStyle = {
 
     fontFamily: "Arial",
 
-    fontSize: 40,
+    fontSize:20,
 
     color: "#ffffff",
 
