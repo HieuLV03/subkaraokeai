@@ -161,27 +161,7 @@ export default function HomePage() {
 
             <>
 
-              <button
-                className="toolbar-btn"
-                onClick={
-                  handleImportVideo
-                }
-              >
-                🎬 Video
-              </button>
-
-
-              <button
-                className="toolbar-btn"
-                disabled={
-                  !project.videoFile
-                }
-                onClick={
-                  handleImportAudio
-                }
-              >
-                🎵 Audio
-              </button>
+           
 
             </>
 
