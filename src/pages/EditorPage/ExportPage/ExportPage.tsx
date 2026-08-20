@@ -1,10 +1,16 @@
 "use client";
+import "./ExportPage.css";
+import { supabase } from "@/lib/supabase";
 
 import {
     useEffect,
     useMemo,
     useState,
 } from "react";
+
+import {
+    useNavigate,
+} from "react-router-dom";
 
 import {
     useLyricsStore,
@@ -17,7 +23,6 @@ import {
 import {
     useProjectStore,
 } from "@/stores/project.store";
-
 
 interface ExportResult {
 
@@ -47,6 +52,7 @@ interface ExportProgress {
 
 
 export default function ExportPage() {
+    const navigate = useNavigate();
 
     // =========================================================
     // LYRICS
@@ -104,7 +110,11 @@ const setWorkspace =
     const [outputPath, setOutputPath] =
         useState("");
 
+const [session, setSession] =
+    useState<any>(null);
 
+const [authChecking, setAuthChecking] =
+    useState(true);
     // =========================================================
     // DURATION
     // =========================================================
@@ -162,7 +172,82 @@ const setWorkspace =
     // =========================================================
     // CAN EXPORT
     // =========================================================
+useEffect(() => {
 
+    let mounted = true;
+
+    async function loadAuth() {
+
+        try {
+
+            const {
+                data,
+                error,
+            } = await supabase.auth.getSession();
+
+            if (!mounted) {
+                return;
+            }
+
+            if (error) {
+
+                console.error(
+                    "[EXPORT AUTH ERROR]",
+                    error
+                );
+
+                setSession(null);
+
+                return;
+            }
+
+            setSession(
+                data.session ?? null
+            );
+
+        } finally {
+
+            if (mounted) {
+                setAuthChecking(false);
+            }
+
+        }
+
+    }
+
+    loadAuth();
+
+    const {
+        data: listener,
+    } = supabase.auth.onAuthStateChange(
+        (_event, newSession) => {
+
+            if (!mounted) {
+                return;
+            }
+
+            console.log(
+                "[EXPORT AUTH CHANGE]",
+                _event,
+                newSession?.user?.email
+            );
+
+            setSession(
+                newSession ?? null
+            );
+
+        }
+    );
+
+    return () => {
+
+        mounted = false;
+
+        listener.subscription.unsubscribe();
+
+    };
+
+}, []);
     const canExport =
         lyrics.length > 0 &&
 
@@ -304,245 +389,202 @@ const setWorkspace =
     // EXPORT
     // =========================================================
 
-    async function handleExport() {
+async function handleExport() {
 
-        if (!canExport) {
+    // ============================================
+    // CHECK AUTH
+    // ============================================
+
+    let currentSession = session;
+
+    if (!currentSession) {
+
+        const {
+            data,
+            error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+
+            console.error(
+                "[EXPORT] Auth check failed:",
+                error
+            );
+
+            navigate("/profile", {
+                state: {
+                    returnWorkspace: "export",
+                },
+            });
 
             return;
-
         }
 
+        currentSession =
+            data.session ?? null;
+    }
 
-        setExporting(true);
+    // ============================================
+    // NOT LOGIN
+    // ============================================
+
+    if (!currentSession) {
+
+        navigate("/profile", {
+            state: {
+                returnWorkspace: "export",
+            },
+        });
+
+        return;
+    }
+
+    // ============================================
+    // START EXPORT
+    // ============================================
+
+    setExporting(true);
+
+    setProgress(0);
+
+    setMessage(
+        "Đang chuẩn bị export..."
+    );
+
+    setOutputPath("");
+
+    try {
+
+        console.log(
+            "[EXPORT PROJECT]",
+            {
+                userId:
+                    currentSession.user.id,
+
+                email:
+                    currentSession.user.email,
+
+                videoFile,
+                audioFile,
+                duration,
+
+                lyrics:
+                    lyrics.length,
+            }
+        );
+
+        const result =
+            await window.electronAPI.invoke<ExportResult>(
+                "export:video",
+                {
+                    videoFile: videoFile!,
+                    audioFile: audioFile!,
+                    lyrics,
+                    duration,
+
+                    width: 1920,
+                    height: 1080,
+                    fps: 30,
+
+                    accessToken:
+                        currentSession.access_token,
+                }
+            );
+
+        if (result?.canceled) {
+
+            setProgress(0);
+
+            setMessage(
+                "Đã hủy export."
+            );
+
+            return;
+        }
+
+        if (result?.outputPath) {
+
+            setOutputPath(
+                result.outputPath
+            );
+
+            setProgress(100);
+
+            setMessage(
+                "Export hoàn tất."
+            );
+
+            return;
+        }
+
+        throw new Error(
+            "Export không trả về outputPath."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "EXPORT ERROR:",
+            error
+        );
 
         setProgress(0);
 
         setMessage(
-            "Đang chuẩn bị export..."
+            error instanceof Error
+                ? error.message
+                : "Export thất bại."
         );
 
-        setOutputPath("");
+    } finally {
 
-
-        try {
-
-            console.log(
-                "EXPORT PROJECT:",
-                {
-
-                    videoFile,
-
-                    audioFile,
-
-                    duration,
-
-                    lyrics:
-                        lyrics.length,
-
-                }
-
-            );
-
-
-            const result =
-                await window.electronAPI.invoke<ExportResult>(
-
-                    "export:video",
-
-                    {
-
-                        // ================================
-                        // VIDEO BACKGROUND
-                        // ================================
-
-                        videoFile:
-
-
-                            videoFile!,
-
-
-                        // ================================
-                        // AUDIO / VOCAL
-                        // ================================
-
-                        audioFile:
-
-
-                            audioFile!,
-
-
-                        // ================================
-                        // LYRICS
-                        // ================================
-
-                        lyrics,
-
-
-                        // ================================
-                        // DURATION
-                        // ================================
-
-                        duration,
-
-
-                        // ================================
-                        // CANVAS
-                        // ================================
-
-                        width:
-                            1920,
-
-                        height:
-                            1080,
-
-                        fps:
-                            30,
-
-                    }
-
-                );
-
-
-            // =================================================
-            // CANCEL
-            // =================================================
-
-            if (
-                result?.canceled
-            ) {
-
-                setProgress(0);
-
-                setMessage(
-                    "Đã hủy export."
-                );
-
-                return;
-
-            }
-
-
-            // =================================================
-            // SUCCESS
-            // =================================================
-
-            if (
-                result?.outputPath
-            ) {
-
-                setOutputPath(
-                    result.outputPath
-                );
-
-                setProgress(100);
-
-                setMessage(
-                    "Export hoàn tất."
-                );
-
-                return;
-
-            }
-
-
-            throw new Error(
-                "Export không trả về outputPath."
-            );
-
-        }
-
-
-        catch (error) {
-
-            console.error(
-                "EXPORT ERROR:",
-                error
-            );
-
-
-            setProgress(0);
-
-
-            setMessage(
-
-                error instanceof Error
-
-                    ? error.message
-
-                    : "Export thất bại."
-
-            );
-
-        }
-
-
-        finally {
-
-            setExporting(false);
-
-        }
+        setExporting(false);
 
     }
-
+}
 
     // =========================================================
     // UI
     // =========================================================
+return (
+    <div className="export-page">
 
-    return (
+        <div className="export-content">
 
-        <div
-            style={{
+            <div className="export-card">
 
-                padding:
-                    24,
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
-                maxWidth:
-                    700,
+            <div className="export-header">
 
-                margin:
-                    "0 auto",
+                <h2>
+                    Export Karaoke Video
+                </h2>
 
-            }}
-        >
+                <p>
+                    Xuất video karaoke hoàn chỉnh
+                    với video nền, audio và lyrics.
+                </p>
 
-            <h2>
-                Export Karaoke Video
-            </h2>
-
-
-            <p>
-                Xuất video karaoke hoàn chỉnh
-                với video nền, audio và lyrics.
-            </p>
+            </div>
 
 
             {/* =================================================
                 PROJECT INFO
             ================================================= */}
 
-            <div
-                style={{
+            <div className="export-section">
 
-                    marginTop:
-                        20,
+                <span className="export-label">
+                    Project Information
+                </span>
 
-                    padding:
-                        20,
-
-                    border:
-                        "1px solid #333",
-
-                    borderRadius:
-                        10,
-
-                }}
-            >
 
                 {/* VIDEO */}
 
                 <div>
-
                     <strong>
                         Video Background
                     </strong>
@@ -550,17 +592,17 @@ const setWorkspace =
                     <div
                         style={{
                             marginTop: 4,
-                            wordBreak:
-                                "break-all",
+                            wordBreak: "break-all",
+                            color: videoFile
+                                ? "#94a3b8"
+                                : "#ef4444",
+                            fontSize: 13,
                         }}
                     >
-
                         {videoFile
                             ? videoFile
                             : "❌ Chưa chọn video"}
-
                     </div>
-
                 </div>
 
 
@@ -571,7 +613,6 @@ const setWorkspace =
                         marginTop: 16,
                     }}
                 >
-
                     <strong>
                         Audio / Vocal
                     </strong>
@@ -579,17 +620,17 @@ const setWorkspace =
                     <div
                         style={{
                             marginTop: 4,
-                            wordBreak:
-                                "break-all",
+                            wordBreak: "break-all",
+                            color: audioFile
+                                ? "#94a3b8"
+                                : "#ef4444",
+                            fontSize: 13,
                         }}
                     >
-
                         {audioFile
                             ? audioFile
                             : "❌ Chưa chọn audio"}
-
                     </div>
-
                 </div>
 
 
@@ -600,15 +641,19 @@ const setWorkspace =
                         marginTop: 16,
                     }}
                 >
-
                     <strong>
                         Format
                     </strong>
 
-                    <div>
+                    <div
+                        style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                        }}
+                    >
                         MP4 / H.264 + AAC
                     </div>
-
                 </div>
 
 
@@ -619,15 +664,19 @@ const setWorkspace =
                         marginTop: 12,
                     }}
                 >
-
                     <strong>
                         Resolution
                     </strong>
 
-                    <div>
+                    <div
+                        style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                        }}
+                    >
                         1920 × 1080
                     </div>
-
                 </div>
 
 
@@ -638,15 +687,19 @@ const setWorkspace =
                         marginTop: 12,
                     }}
                 >
-
                     <strong>
                         FPS
                     </strong>
 
-                    <div>
+                    <div
+                        style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                        }}
+                    >
                         30 FPS
                     </div>
-
                 </div>
 
 
@@ -657,20 +710,22 @@ const setWorkspace =
                         marginTop: 12,
                     }}
                 >
-
                     <strong>
                         Lyrics
                     </strong>
 
-                    <div>
-
+                    <div
+                        style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                        }}
+                    >
                         {lyrics.length}
                         {" lines · "}
                         {wordCount}
                         {" words"}
-
                     </div>
-
                 </div>
 
 
@@ -681,21 +736,21 @@ const setWorkspace =
                         marginTop: 12,
                     }}
                 >
-
                     <strong>
                         Duration
                     </strong>
 
-                    <div>
-
+                    <div
+                        style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                        }}
+                    >
                         {duration > 0
-
                             ? `${duration.toFixed(2)} seconds`
-
                             : "Chưa có audio"}
-
                     </div>
-
                 </div>
 
             </div>
@@ -706,135 +761,55 @@ const setWorkspace =
             ================================================= */}
 
             {!videoFile && (
-
-                <div
-                    style={{
-                        marginTop: 16,
-                        padding: 12,
-                        borderRadius: 8,
-                    }}
-                >
-
-                    ⚠️ Bạn chưa import
-                    video nền.
-
+                <div className="export-message">
+                    ⚠️ Bạn chưa import video nền.
                 </div>
-
             )}
-
 
             {!audioFile && (
-
-                <div
-                    style={{
-                        marginTop: 8,
-                        padding: 12,
-                        borderRadius: 8,
-                    }}
-                >
-
-                    ⚠️ Bạn chưa import
-                    audio / vocal.
-
+                <div className="export-message">
+                    ⚠️ Bạn chưa import audio / vocal.
                 </div>
-
             )}
 
-{/* =================================================
-    ACTION BUTTONS
-================================================= */}
 
-<div
-    style={{
-        display: "flex",
-        gap: 10,
-        marginTop: 20,
-    }}
->
+            {/* =================================================
+                ACTION BUTTONS
+            ================================================= */}
 
-    {/* PREVIOUS */}
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                    marginTop: 22,
+                }}
+            >
 
-    <button
-        type="button"
-        onClick={() =>
-            setWorkspace(
-                "style"
-            )
-        }
-        style={{
-            flex: 1,
-            padding: "14px 20px",
-            borderRadius: 8,
-            border: "1px solid #333",
-            background: "transparent",
-            cursor: "pointer",
-            fontWeight: 700,
-        }}
-    >
-        ← Previous
-    </button>
+                {/* PREVIOUS */}
 
+               
 
-    {/* EXPORT */}
+                {/* EXPORT */}
 
-    <button
-        type="button"
-        onClick={
-            handleExport
-        }
-        disabled={
-            !canExport
-        }
-        style={{
-            flex: 2,
-            padding: "14px 20px",
-            borderRadius: 8,
-            border: "none",
-            cursor:
-                canExport
-                    ? "pointer"
-                    : "not-allowed",
-            opacity:
-                canExport
-                    ? 1
-                    : 0.5,
-            fontWeight: 700,
-        }}
-    >
-        {exporting
-            ? "Exporting..."
-            : "Export Karaoke Video"}
-    </button>
-
-</div>
+               
+            </div>
 
             {/* =================================================
                 PROGRESS
             ================================================= */}
 
             {exporting && (
-
-                <div
-                    style={{
-                        marginTop: 20,
-                    }}
-                >
+                <div className="export-section">
 
                     <div
                         style={{
-
-                            display:
-                                "flex",
-
-                            justifyContent:
-                                "space-between",
-
-                            marginBottom:
-                                8,
-
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: 8,
+                            fontSize: 12,
+                            color: "#94a3b8",
                         }}
                     >
-
                         <span>
                             {message}
                         </span>
@@ -842,117 +817,43 @@ const setWorkspace =
                         <span>
                             {progress}%
                         </span>
-
                     </div>
-
 
                     <div
                         style={{
-
-                            width:
-                                "100%",
-
-                            height:
-                                8,
-
-                            background:
-                                "#222",
-
-                            borderRadius:
-                                999,
-
-                            overflow:
-                                "hidden",
-
+                            width: "100%",
+                            height: 8,
+                            background: "#0f1720",
+                            borderRadius: 999,
+                            overflow: "hidden",
                         }}
                     >
-
                         <div
                             style={{
-
-                                width:
-                                    `${progress}%`,
-
-                                height:
-                                    "100%",
-
+                                width: `${progress}%`,
+                                height: "100%",
                                 background:
-                                    "#00ff66",
-
-                                transition:
-                                    "width 0.15s",
-
+                                    "linear-gradient(90deg, #0891b2, #22d3ee)",
+                                transition: "width 0.15s",
                             }}
                         />
-
                     </div>
 
                 </div>
-
             )}
 
+            {/* MESSAGE */}
 
-            {/* =================================================
-                MESSAGE
-            ================================================= */}
+            {!exporting && message && (
+                <div className="export-message">
+                    {message}
+                </div>
+            )}
 
-            {!exporting &&
-                message && (
-
-                    <div
-                        style={{
-
-                            marginTop:
-                                20,
-
-                            padding:
-                                12,
-
-                            borderRadius:
-                                8,
-
-                            background:
-                                "#181818",
-
-                        }}
-                    >
-
-                        {message}
-
-                    </div>
-
-                )}
-
-
-            {/* =================================================
-                OUTPUT
-            ================================================= */}
+            {/* OUTPUT */}
 
             {outputPath && (
-
-                <div
-                    style={{
-
-                        marginTop:
-                            12,
-
-                        padding:
-                            12,
-
-                        fontSize:
-                            13,
-
-                        wordBreak:
-                            "break-all",
-
-                        border:
-                            "1px solid #333",
-
-                        borderRadius:
-                            8,
-
-                    }}
-                >
+                <div className="export-output">
 
                     <strong>
                         File:
@@ -963,11 +864,52 @@ const setWorkspace =
                     {outputPath}
 
                 </div>
-
             )}
+
+            </div>
+        </div>
+
+
+        {/* =================================================
+            FIXED FOOTER
+        ================================================= */}
+
+        <div className="export-footer">
+
+            <div className="export-footer-inner">
+
+                {/* PREVIOUS */}
+
+                <button
+                    type="button"
+                    className="export-previous-button"
+                    onClick={() =>
+                        setWorkspace("style")
+                    }
+                >
+                    ← Previous
+                </button>
+
+
+                {/* EXPORT */}
+
+                <button
+                    type="button"
+                    className="export-button"
+                    onClick={handleExport}
+               
+                >
+                    {exporting
+                        ? "Exporting..."
+                        : authChecking
+                            ? "Checking..."
+                            : "Export Karaoke Video"}
+                </button>
+
+            </div>
 
         </div>
 
-    );
-
+    </div>
+);
 }

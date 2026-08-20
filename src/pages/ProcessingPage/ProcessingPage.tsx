@@ -21,6 +21,10 @@ import {
 
 export default function ProcessingPage() {
 
+  // =========================================================
+  // EDITOR STORE
+  // =========================================================
+
   const play =
     useEditorStore(
       state => state.play
@@ -33,9 +37,23 @@ export default function ProcessingPage() {
     );
 
 
+  const setWorkspace =
+    useEditorStore(
+      state => state.setWorkspace
+    );
+
+
+  // =========================================================
+  // NAVIGATE
+  // =========================================================
+
   const navigate =
     useNavigate();
 
+
+  // =========================================================
+  // PROJECT
+  // =========================================================
 
   const project =
     useProjectStore(
@@ -48,6 +66,10 @@ export default function ProcessingPage() {
       state => state.setLyrics
     );
 
+
+  // =========================================================
+  // PROGRESS
+  // =========================================================
 
   const progress =
     useAppStore(
@@ -66,6 +88,10 @@ export default function ProcessingPage() {
       state => state.setProgress
     );
 
+
+  // =========================================================
+  // PROCESSING
+  // =========================================================
 
   useEffect(() => {
 
@@ -119,6 +145,9 @@ export default function ProcessingPage() {
       onAICompleted(
         lyrics => {
 
+          // ================================================
+          // MAP LYRICS
+          // ================================================
 
           const mappedLyrics =
             lyrics.map(
@@ -178,6 +207,16 @@ export default function ProcessingPage() {
 
 
           // ================================================
+          // QUAN TRỌNG
+          // RESET WORKSPACE VỀ LINE
+          // ================================================
+
+          setWorkspace(
+            "line"
+          );
+
+
+          // ================================================
           // PLAY
           // ================================================
 
@@ -185,7 +224,7 @@ export default function ProcessingPage() {
 
 
           // ================================================
-          // EDITOR
+          // ĐI VÀO EDITOR
           // ================================================
 
           navigate(
@@ -223,6 +262,10 @@ export default function ProcessingPage() {
     project,
   ]);
 
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
 

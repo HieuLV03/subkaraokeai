@@ -45,3 +45,184 @@
   padding: 14px 24px;
   cursor: pointer;
 }
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.home-toolbar {
+    height: 56px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 16px;
+
+    background: #151515;
+
+    border-bottom: 1px solid #292929;
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   LEFT
+========================================================= */
+
+.home-toolbar-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 220px;
+}
+
+
+.toolbar-back {
+    width: 36px;
+    height: 36px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #222222;
+
+    color: #ffffff;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.toolbar-back:hover {
+    background: #303030;
+}
+
+
+.toolbar-title {
+    display: flex;
+
+    flex-direction: column;
+
+    line-height: 1.1;
+
+    gap: 3px;
+}
+
+
+.toolbar-title strong {
+    font-size: 14px;
+}
+
+
+.toolbar-title span {
+    font-size: 11px;
+
+    color: #888888;
+}
+
+
+/* =========================================================
+   CENTER
+========================================================= */
+
+.home-toolbar-center {
+    flex: 1;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 4px;
+}
+
+
+.toolbar-btn {
+    height: 34px;
+
+    padding: 0 14px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #aaaaaa;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+.toolbar-btn:hover {
+    background: #222222;
+
+    color: #ffffff;
+}
+
+
+.toolbar-btn.active {
+    background: #292929;
+
+    color: #ffffff;
+}
+
+
+.toolbar-btn:disabled {
+    opacity: 0.35;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   RIGHT
+========================================================= */
+
+.home-toolbar-right {
+    min-width: 220px;
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.toolbar-icon-btn {
+    width: 36px;
+    height: 36px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #ffffff;
+
+    cursor: pointer;
+
+    font-size: 16px;
+}
+
+
+.toolbar-icon-btn:hover {
+    background: #252525;
+}

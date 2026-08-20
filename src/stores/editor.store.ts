@@ -51,9 +51,13 @@ type EditorState = {
     // ===========================
 currentWorkspace: EditorWorkspace;
 
+workspaceHistory: EditorWorkspace[];
+
 setWorkspace: (
     workspace: EditorWorkspace
-)=>void;
+) => void;
+
+goBackWorkspace: () => void;
 
     setAudioRef:
     (
@@ -159,7 +163,8 @@ export type EditorWorkspace =
     | "line"
     | "timing"
     | "style"
-    | "export";
+    | "export"
+    | "profile";
 
 export const useEditorStore =
 create<EditorState>((set,get)=>(
@@ -204,9 +209,9 @@ create<EditorState>((set,get)=>(
 
     selectedWord:undefined,
 
-    currentWorkspace: "line",
+currentWorkspace: "line",
 
-
+workspaceHistory: [],
 
     // ===========================
     // Audio
@@ -389,14 +394,58 @@ create<EditorState>((set,get)=>(
 
     }),
 
-setWorkspace:(workspace)=>set({
+// ===========================
+// Workspace
+// ===========================
 
-    currentWorkspace: workspace
+setWorkspace: (workspace) =>
+    set((state) => {
 
-}),
+        // Nếu đã ở workspace này thì không làm gì
+        if (
+            state.currentWorkspace === workspace
+        ) {
+            return state;
+        }
+
+        return {
+            currentWorkspace: workspace,
+
+            workspaceHistory: [
+                ...state.workspaceHistory,
+                state.currentWorkspace,
+            ],
+        };
+
+    }),
 
 
+goBackWorkspace: () =>
+    set((state) => {
 
+        // Không có lịch sử để quay lại
+        if (
+            state.workspaceHistory.length === 0
+        ) {
+            return state;
+        }
+
+        const history =
+            [...state.workspaceHistory];
+
+        const previousWorkspace =
+            history.pop();
+
+        return {
+            currentWorkspace:
+                previousWorkspace ??
+                "line",
+
+            workspaceHistory:
+                history,
+        };
+
+    }),
 
     // ===========================
     // Reset
@@ -435,9 +484,8 @@ setWorkspace:(workspace)=>set({
 
         selectedWord:undefined,
 
-        currentWorkspace:"line"
-
-
+        currentWorkspace:"line",
+workspaceHistory: [],
 
     })
 

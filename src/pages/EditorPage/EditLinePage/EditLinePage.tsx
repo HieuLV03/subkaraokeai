@@ -8,7 +8,12 @@ export default function EditLinePage() {
     const setWorkspace = useEditorStore(
         (state) => state.setWorkspace
     );
-
+const autoResizeTextarea = (
+    textarea: HTMLTextAreaElement
+) => {
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+};
  const resetAllTiming = useLyricsStore(
     state => state.resetAllTiming
 );
@@ -191,74 +196,89 @@ const startTiming = useLyricsStore(
                         </div>
 
                         {/* TEXT */}
-                        <textarea
-                            value={line.text}
-                            onChange={(e) => {
-                                const value = e.target.value;
+                     <textarea
+    value={line.text}
+    ref={(el) => {
+        if (el) {
+            el.style.height = "auto";
+            el.style.height = `${el.scrollHeight}px`;
+        }
+    }}
+    onChange={(e) => {
+        const textarea = e.currentTarget;
+        const value = textarea.value;
 
-                                updateLyrics((old) =>
-                                    old.map((item) => {
-                                        if (item.id !== line.id)
-                                            return item;
+        autoResizeTextarea(textarea);
 
-                                        const texts = value
-                                            .trim()
-                                            .split(/\s+/)
-                                            .filter(Boolean);
+        updateLyrics((old) =>
+            old.map((item) => {
+                if (item.id !== line.id)
+                    return item;
 
-                                        const words = texts.map(
-                                            (text, index) => {
-                                                const oldWord =
-                                                    item.words[index];
+                const texts = value
+                    .trim()
+                    .split(/\s+/)
+                    .filter(Boolean);
 
-                                                return {
-                                                    id:
-                                                        oldWord?.id ??
-                                                        crypto.randomUUID(),
-                                                    word: text,
-                                                    start:
-                                                        oldWord?.start ??
-                                                        item.start,
-                                                    end:
-                                                        oldWord?.end ??
-                                                        item.end,
-                                                    synced:
-                                                        oldWord?.synced ??
-                                                        false,
-                                                };
-                                            }
-                                        );
+                const words = texts.map(
+                    (text, index) => {
+                        const oldWord =
+                            item.words[index];
 
-                                        return {
-                                            ...item,
-                                            text: value,
-                                            words,
-                                        };
-                                    })
-                                );
-                            }}
-                            onFocus={() => setEditingId(line.id)}
-                            onBlur={() => setEditingId(null)}
-                            onKeyDown={(e) => {
-                                const cursor =
-                                    e.currentTarget.selectionStart;
+                        return {
+                            id:
+                                oldWord?.id ??
+                                crypto.randomUUID(),
 
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    splitLine(line.id, cursor);
-                                }
+                            word: text,
 
-                                if (
-                                    e.key === "Backspace" &&
-                                    cursor === 0
-                                ) {
-                                    e.preventDefault();
-                                    mergeLine(line.id);
-                                }
-                            }}
-                            className="edit-line-textarea"
-                        />
+                            start:
+                                oldWord?.start ??
+                                item.start,
 
+                            end:
+                                oldWord?.end ??
+                                item.end,
+
+                            synced:
+                                oldWord?.synced ??
+                                false,
+                        };
+                    }
+                );
+
+                return {
+                    ...item,
+                    text: value,
+                    words,
+                };
+            })
+        );
+    }}
+    onFocus={(e) => {
+        setEditingId(line.id);
+        autoResizeTextarea(e.currentTarget);
+    }}
+    onBlur={() => setEditingId(null)}
+    onKeyDown={(e) => {
+        const cursor =
+            e.currentTarget.selectionStart;
+
+        if (e.key === "Enter") {
+            e.preventDefault();
+            splitLine(line.id, cursor);
+        }
+
+        if (
+            e.key === "Backspace" &&
+            cursor === 0
+        ) {
+            e.preventDefault();
+            mergeLine(line.id);
+        }
+    }}
+    className="edit-line-textarea"
+/>
                         {/* BOTTOM */}
                         <div className="edit-line-bottom">
                             <span>{line.words.length} words</span>

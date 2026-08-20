@@ -92,6 +92,7 @@ type ExportData = {
     height?: number;
 
     fps?: number;
+    accessToken?: string;
 
 };
 
@@ -966,28 +967,131 @@ function runFfmpeg(
 
 }
 
+// ============================================================
+// SUPABASE AUTH
+// ============================================================
 
+const SUPABASE_URL =
+    "https://iidgutuqgiynvacppwlq.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpZGd1dHVxZ2l5bnZhY3Bwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNzE3MDQsImV4cCI6MjEwMjc0NzcwNH0.0fpKn0q9Eu-YQCWJPErQ_SSUwT1bBFlLE0jM9mHzmg0";
+
+async function verifySupabaseUser(
+    accessToken: string
+) {
+
+    if (!accessToken) {
+        throw new Error(
+            "Bạn phải đăng nhập trước khi export."
+        );
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${SUPABASE_URL}/auth/v1/user`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        Authorization:
+                            `Bearer ${accessToken}`,
+
+                        apikey:
+                            SUPABASE_ANON_KEY,
+                    },
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Phiên đăng nhập không hợp lệ hoặc đã hết hạn."
+            );
+
+        }
+
+
+        const user =
+            await response.json();
+
+
+        if (!user?.id) {
+
+            throw new Error(
+                "Không xác định được tài khoản đăng nhập."
+            );
+
+        }
+
+
+        console.log(
+            "[AUTH] Export user:",
+            {
+                id: user.id,
+                email: user.email,
+            }
+        );
+
+
+        return user;
+
+    }
+
+    catch (error) {
+
+    console.error(
+        "[AUTH] Verify failed:",
+        error
+    );
+
+    if (error instanceof Error) {
+        throw error;
+    }
+
+    throw new Error(
+        "Không thể xác thực tài khoản."
+    );
+
+}
+
+}
 // ============================================================
 // REGISTER IPC
 // ============================================================
 
 export function registerExportIPC() {
 
-    ipcMain.handle(
+ipcMain.handle(
+    "export:video",
 
-        "export:video",
+    async (
+        event,
+        data: ExportData
+    ) => {
 
-        async (
+        // =================================================
+        // AUTHENTICATION
+        // =================================================
 
-            event,
+        const user =
+            await verifySupabaseUser(
+                data.accessToken ?? ""
+            );
 
-            data: ExportData
 
-        ) => {
+        console.log(
+            "[EXPORT] Authenticated:",
+            user.email
+        );
 
-            const width =
-                data.width ??
-                CANVAS_WIDTH;
+
+        const width =
+            data.width ??
+            CANVAS_WIDTH;
 
 
             const height =

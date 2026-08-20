@@ -1,10 +1,11 @@
 import { useAppStore } from "@/stores/app.store";
 import { useProjectStore } from "@/stores/project.store";
-
 import { importAudio } from "@/services/audio.service";
 import { importVideo } from "@/services/video.service";
 
 import { useNavigate } from "react-router-dom";
+
+import "./HomePage.css";
 
 export default function HomePage() {
 
@@ -68,36 +69,21 @@ export default function HomePage() {
 
     if (!project) return;
 
-    // ----------------------------------------------------------
-    // BẮT BUỘC PHẢI CÓ VIDEO TRƯỚC
-    // ----------------------------------------------------------
-
     if (!project.videoFile) {
-
       return;
-
     }
-
 
     const file =
       await importAudio();
 
     if (!file) return;
 
-
     console.log(
       "Vocal / Song:",
       file
     );
 
-
     setAudioFile(file);
-
-
-    // ----------------------------------------------------------
-    // SAU KHI CÓ VIDEO + AUDIO
-    // → AI PROCESSING
-    // ----------------------------------------------------------
 
     navigate(
       "/processing"
@@ -106,9 +92,130 @@ export default function HomePage() {
   };
 
 
+  // ============================================================
+  // BACK
+  // ============================================================
+
+  const handleBack = () => {
+
+    navigate(-1);
+
+  };
+
+
   return (
 
     <div className="home-page">
+
+
+      {/* ======================================================
+          TOOLBAR
+      ====================================================== */}
+
+      <div className="home-toolbar">
+
+        {/* LEFT */}
+
+        <div className="home-toolbar-left">
+
+          <button
+            className="toolbar-back"
+            onClick={
+              handleBack
+            }
+          >
+            ←
+          </button>
+
+
+          <div className="toolbar-title">
+
+            <strong>
+              {appName}
+            </strong>
+
+            <span>
+              Home
+            </span>
+
+          </div>
+
+        </div>
+
+
+        {/* CENTER */}
+
+        <div className="home-toolbar-center">
+
+          <button
+            className="toolbar-btn active"
+            onClick={() =>
+              navigate("/")
+            }
+          >
+            🏠 Home
+          </button>
+
+
+          {project && (
+
+            <>
+
+              <button
+                className="toolbar-btn"
+                onClick={
+                  handleImportVideo
+                }
+              >
+                🎬 Video
+              </button>
+
+
+              <button
+                className="toolbar-btn"
+                disabled={
+                  !project.videoFile
+                }
+                onClick={
+                  handleImportAudio
+                }
+              >
+                🎵 Audio
+              </button>
+
+            </>
+
+          )}
+
+        </div>
+
+
+        {/* RIGHT */}
+
+        <div className="home-toolbar-right">
+
+
+<button
+    className="toolbar-profile-btn"
+    onClick={() => {
+        console.log("PROFILE CLICK");
+
+        navigate("/profile");
+    }}
+>
+    <span className="toolbar-profile-icon">
+        👤
+    </span>
+
+    <span className="toolbar-profile-text">
+        Profile
+    </span>
+</button>
+
+        </div>
+
+      </div>
+
 
 
       {/* ======================================================
@@ -126,6 +233,7 @@ export default function HomePage() {
         </p>
 
       </header>
+
 
 
       {/* ======================================================
@@ -161,6 +269,7 @@ export default function HomePage() {
       )}
 
 
+
       {/* ======================================================
           PROJECT
       ====================================================== */}
@@ -183,6 +292,7 @@ export default function HomePage() {
           </div>
 
 
+
           {/* ==================================================
               STEP INDICATOR
           ================================================== */}
@@ -195,10 +305,7 @@ export default function HomePage() {
                   ? "workflow-step completed"
                   : "workflow-step active"
               }
-            >
-
-            </div>
-
+            />
 
             <div
               className={
@@ -208,13 +315,11 @@ export default function HomePage() {
                     ? "workflow-step active"
                     : "workflow-step disabled"
               }
-            >
-
-            </div>
-
-
+            />
 
           </div>
+
+
 
           {/* ==================================================
               WAVEFORM
@@ -239,22 +344,16 @@ export default function HomePage() {
           </div>
 
 
-          {/* ==================================================
-              LYRICS
-          ================================================== */}
-
-   
-
 
           {/* ==================================================
-              TOOLBAR
+              DASHBOARD
           ================================================== */}
 
           <div className="dashboard">
 
 
             {/* =================================================
-                STEP 1 — VIDEO BACKGROUND
+                STEP 1
             ================================================= */}
 
             <button
@@ -272,8 +371,9 @@ export default function HomePage() {
             </button>
 
 
+
             {/* =================================================
-                STEP 2 — VOCAL / SONG
+                STEP 2
             ================================================= */}
 
             <button
@@ -297,6 +397,7 @@ export default function HomePage() {
 
 
           </div>
+
 
 
           {/* ==================================================
@@ -338,7 +439,6 @@ export default function HomePage() {
             </p>
 
           )}
-
 
         </div>
 

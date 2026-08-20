@@ -243,14 +243,20 @@ const selectLine = useLyricsStore(
         </button>
 
 
-        <button
-            className="timing-btn reset-all"
-            onClick={() => {
-                resetAllTiming();
-            }}
-        >
-            Reset All
-        </button>
+   <button
+    className="timing-btn reset-all"
+    onClick={() => {
+        const confirmed = window.confirm(
+            "Bạn có chắc muốn Reset All không?\n\nTất cả timing của line và word sẽ được reset."
+        );
+
+        if (!confirmed) return;
+
+        resetAllTiming();
+    }}
+>
+    Reset All
+</button>
 
 
         <button

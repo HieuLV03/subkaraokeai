@@ -12,48 +12,94 @@ import MainLayout from "@/layouts/MainLayout/MainLayout";
 import HomePage from "@/pages/HomePages/HomePage";
 import ProcessingPage from "@/pages/ProcessingPage/ProcessingPage";
 import EditorPage from "@/pages/EditorPage/EditorPage";
-import EditLinePage from "@/pages/EditorPage/EditLinePage/EditLinePage"; // ⭐ thêm
+import EditLinePage from "@/pages/EditorPage/EditLinePage/EditLinePage";
+
+import Profile from "@/pages/Profile/Profile";
 
 import {
   registerAIListener
 } from "@/listener/ai.listener";
 
+
 export default function App() {
 
-useEffect(() => {
 
-    const cleanup = registerAIListener();
+  useEffect(() => {
+
+    const cleanup =
+      registerAIListener();
 
     return cleanup;
 
-}, []);
+  }, []);
+
+
   return (
 
     <MainLayout>
 
       <Routes>
 
+
+        {/* ==========================================
+            HOME
+        ========================================== */}
+
         <Route
           path="/"
-          element={<HomePage />}
+          element={
+            <HomePage />
+          }
         />
+
+
+        {/* ==========================================
+            PROCESSING
+        ========================================== */}
 
         <Route
           path="/processing"
-          element={<ProcessingPage />}
+          element={
+            <ProcessingPage />
+          }
         />
 
-        {/* ⭐ Page chia dòng */}
+
+        {/* ==========================================
+            EDITOR - LINES
+        ========================================== */}
+
         <Route
           path="/editor/lines"
-          element={<EditLinePage />}
+          element={
+            <EditLinePage />
+          }
         />
 
-        {/* Timing Editor (page hiện tại) */}
+
+        {/* ==========================================
+            EDITOR
+        ========================================== */}
+
         <Route
           path="/editor"
-          element={<EditorPage />}
+          element={
+            <EditorPage />
+          }
         />
+
+
+        {/* ==========================================
+            PROFILE
+        ========================================== */}
+
+        <Route
+          path="/profile"
+          element={
+            <Profile />
+          }
+        />
+
 
       </Routes>
 
