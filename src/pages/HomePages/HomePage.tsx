@@ -238,12 +238,7 @@ export default function HomePage() {
           </button>
 
 
-          <button
-            className="card"
-          >
-            📂 Open Project
-          </button>
-
+ 
         </div>
 
       )}
