@@ -21,8 +21,9 @@ import {
 
 
 type AuthMode =
-   | "login"
+    | "login"
     | "register"
+    | "register-otp"
     | "forgot-otp"
     | "forgot-password"
     | "profile"
@@ -327,9 +328,15 @@ function handleBack() {
 
 setPassword("");
 
-setMessage(
-    "Đăng nhập thành công."
-);
+if (returnWorkspace) {
+    setWorkspace(returnWorkspace);
+    navigate(-1);
+    return;
+}
+
+navigate("/", {
+    replace: true,
+});
 
         }
 
@@ -455,11 +462,20 @@ setMessage(
              * Supabase tạo session ngay.
              */
 
-  if (data.session) {
+if (data.session) {
 
-    setMessage(
-        "Tạo tài khoản thành công."
-    );
+    setPassword("");
+    setConfirmPassword("");
+
+    if (returnWorkspace) {
+        setWorkspace(returnWorkspace);
+        navigate(-1);
+        return;
+    }
+
+    navigate("/", {
+        replace: true,
+    });
 
     return;
 }
@@ -469,11 +485,22 @@ setMessage(
              * Email confirmation ON:
              */
 
-            setMode("login");
+     console.log(
+    "[REGISTER]",
+    data
+);
 
-            setMessage(
-                "Tài khoản đã được tạo. Bạn có thể đăng nhập."
-            );
+setOtp("");
+
+setOtpExpiresAt(
+    Date.now() + 5 * 60 * 1000
+);
+
+setMode("register-otp");
+
+setMessage(
+    `Mã OTP đã được gửi tới ${cleanEmail}.`
+);
 
         }
 
@@ -501,7 +528,220 @@ setMessage(
 
     }
 
+// =========================================================
+// VERIFY REGISTER OTP
+// =========================================================
 
+async function handleVerifyRegisterOtp() {
+
+    clearMessages();
+
+    const cleanOtp = otp.trim();
+    const cleanEmail = email.trim();
+
+    if (!cleanOtp) {
+        setError("Vui lòng nhập mã OTP.");
+        return;
+    }
+
+    if (cleanOtp.length !== 8) {
+        setError("Mã OTP phải có 8 số.");
+        return;
+    }
+
+    if (remainingSeconds <= 0) {
+        setError(
+            "OTP đã hết hạn. Vui lòng gửi lại mã mới."
+        );
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+
+        // =====================================================
+        // 1. VERIFY OTP
+        // =====================================================
+
+        const {
+            data,
+            error,
+        } = await supabase.auth.verifyOtp({
+
+            email: cleanEmail,
+
+            token: cleanOtp,
+
+            type: "email",
+
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        console.log(
+            "[REGISTER OTP VERIFIED]",
+            data
+        );
+
+
+        // =====================================================
+        // 2. LẤY USER VỪA XÁC THỰC
+        // =====================================================
+
+        const {
+            data: userData,
+            error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+            throw userError;
+        }
+
+        const user = userData.user;
+
+        if (!user) {
+            throw new Error(
+                "Không tìm thấy tài khoản sau khi xác thực OTP."
+            );
+        }
+
+
+        // =====================================================
+        // 3. TẠO PROFILE
+        // =====================================================
+
+        const {
+            error: profileError,
+        } = await supabase
+            .from("profiles")
+            .insert({
+
+                id: user.id,
+
+                email: user.email,
+
+            });
+
+        if (profileError) {
+            throw profileError;
+        }
+
+
+        console.log(
+            "[PROFILE CREATED]",
+            user.id
+        );
+
+
+        // =====================================================
+        // 4. RESET STATE
+        // =====================================================
+
+        setOtp("");
+
+        setOtpExpiresAt(null);
+
+        setPassword("");
+
+        setConfirmPassword("");
+
+
+        // =====================================================
+        // 5. QUAY VỀ
+        // =====================================================
+
+        if (returnWorkspace) {
+
+            setWorkspace(returnWorkspace);
+
+            navigate(-1);
+
+            return;
+        }
+
+        navigate("/", {
+            replace: true,
+        });
+
+
+    } catch (err) {
+
+        console.error(
+            "VERIFY REGISTER OTP ERROR:",
+            err
+        );
+
+        setError(
+            err instanceof Error
+                ? err.message
+                : "OTP không hợp lệ hoặc không thể tạo tài khoản."
+        );
+
+    } finally {
+
+        setLoading(false);
+
+    }
+}
+
+async function handleResendRegisterOtp() {
+
+    clearMessages();
+
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
+        setError("Không tìm thấy email đăng ký.");
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+
+        const {
+            error,
+        } = await supabase.auth.resend({
+            type: "signup",
+            email: cleanEmail,
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        setOtp("");
+
+        setOtpExpiresAt(
+            Date.now() + 5 * 60 * 1000
+        );
+
+        setMessage(
+            `Mã OTP mới đã được gửi tới ${cleanEmail}.`
+        );
+
+    } catch (err) {
+
+        console.error(
+            "RESEND REGISTER OTP ERROR:",
+            err
+        );
+
+        setError(
+            err instanceof Error
+                ? err.message
+                : "Không thể gửi lại OTP."
+        );
+
+    } finally {
+
+        setLoading(false);
+
+    }
+}
     // =========================================================
     // SEND FORGOT OTP
     // =========================================================
@@ -1359,7 +1599,146 @@ async function handleResetPassword() {
 
                 )}
 
+{/* =================================================
+    REGISTER OTP
+================================================= */}
 
+{mode === "register-otp" && (
+
+    <>
+
+        <div className="profile-header">
+
+            <div className="profile-avatar">
+                📧
+            </div>
+
+            <div>
+
+                <h2>
+                    Xác nhận email
+                </h2>
+
+                <p>
+                    Nhập mã OTP để hoàn tất đăng ký
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div className="profile-content">
+
+            <div className="profile-info">
+
+                <span>
+                    Mã OTP đã được gửi tới
+                </span>
+
+                <b>
+                    {email}
+                </b>
+
+            </div>
+
+
+            <div className="profile-field">
+
+                <label>
+                    Mã OTP
+                </label>
+
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={otp}
+                    onChange={e =>
+                        setOtp(
+                            e.target.value
+                                .replace(
+                                    /\D/g,
+                                    ""
+                                )
+                        )
+                    }
+                    placeholder="Nhập mã 8 số"
+                    autoFocus
+                    disabled={
+                        loading ||
+                        remainingSeconds <= 0
+                    }
+                />
+
+            </div>
+
+
+            <div className="profile-otp-timer">
+
+                {remainingSeconds > 0
+
+                    ? `OTP còn ${formatOtpTime()}`
+
+                    : "OTP đã hết hạn"}
+
+            </div>
+
+
+            <button
+                type="button"
+                className="profile-primary-btn"
+                onClick={
+                    handleVerifyRegisterOtp
+                }
+                disabled={
+                    loading ||
+                    remainingSeconds <= 0
+                }
+            >
+
+                {loading
+                    ? "Đang xác nhận..."
+                    : "Xác nhận OTP"}
+
+            </button>
+
+
+        <button
+    type="button"
+    className="profile-secondary-btn"
+    onClick={handleResendRegisterOtp}
+    disabled={loading}
+>
+    {loading
+        ? "Đang gửi..."
+        : "Gửi lại OTP"}
+</button>
+
+            <button
+                type="button"
+                className="profile-back-btn"
+                onClick={() => {
+
+                    clearMessages();
+
+                    setOtp("");
+
+                    setOtpExpiresAt(null);
+
+                    setMode("register");
+
+                }}
+                disabled={loading}
+            >
+                ← Quay lại đăng ký
+            </button>
+
+        </div>
+
+    </>
+
+)}
                 {/* =================================================
                     FORGOT OTP
                 ================================================= */}
@@ -1767,7 +2146,7 @@ async function handleResetPassword() {
                                 <input
                                     type="text"
                                     inputMode="numeric"
-                                    maxLength={6}
+                                    maxLength={8}
                                     value={otp}
                                     onChange={e =>
                                         setOtp(
