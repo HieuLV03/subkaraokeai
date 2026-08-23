@@ -20,9 +20,10 @@ import {
   registerAIListener
 } from "@/listener/ai.listener";
 
+import UpdateModal from "@/components/UpdateModal/UpdateModal";
+
 
 export default function App() {
-
 
   useEffect(() => {
 
@@ -36,74 +37,77 @@ export default function App() {
 
   return (
 
-    <MainLayout>
+    <>
 
-      <Routes>
+      {/* ==========================================
+          APP
+      ========================================== */}
 
+      <MainLayout>
 
-        {/* ==========================================
-            HOME
-        ========================================== */}
+        <Routes>
 
-        <Route
-          path="/"
-          element={
-            <HomePage />
-          }
-        />
+          {/* HOME */}
 
-
-        {/* ==========================================
-            PROCESSING
-        ========================================== */}
-
-        <Route
-          path="/processing"
-          element={
-            <ProcessingPage />
-          }
-        />
+          <Route
+            path="/"
+            element={
+              <HomePage />
+            }
+          />
 
 
-        {/* ==========================================
-            EDITOR - LINES
-        ========================================== */}
+          {/* PROCESSING */}
 
-        <Route
-          path="/editor/lines"
-          element={
-            <EditLinePage />
-          }
-        />
+          <Route
+            path="/processing"
+            element={
+              <ProcessingPage />
+            }
+          />
 
 
-        {/* ==========================================
-            EDITOR
-        ========================================== */}
+          {/* EDITOR - LINES */}
 
-        <Route
-          path="/editor"
-          element={
-            <EditorPage />
-          }
-        />
+          <Route
+            path="/editor/lines"
+            element={
+              <EditLinePage />
+            }
+          />
 
 
-        {/* ==========================================
-            PROFILE
-        ========================================== */}
+          {/* EDITOR */}
 
-        <Route
-          path="/profile"
-          element={
-            <Profile />
-          }
-        />
+          <Route
+            path="/editor"
+            element={
+              <EditorPage />
+            }
+          />
 
 
-      </Routes>
+          {/* PROFILE */}
 
-    </MainLayout>
+          <Route
+            path="/profile"
+            element={
+              <Profile />
+            }
+          />
+
+        </Routes>
+
+      </MainLayout>
+
+
+      {/* ==========================================
+          AUTO UPDATE
+      ========================================== */}
+
+      <UpdateModal />
+
+    </>
 
   );
 

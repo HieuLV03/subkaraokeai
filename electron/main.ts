@@ -1,6 +1,8 @@
 import {
   app,
-  BrowserWindow
+  BrowserWindow,
+    ipcMain,
+
 } from "electron";
 
 import {
@@ -8,7 +10,6 @@ import {
 } from "electron-updater";
 
 import log from "electron-log";
-
 
 import {
   registerAudioIPC
@@ -68,7 +69,11 @@ let win: BrowserWindow | null = null;
 // CREATE WINDOW
 // =========================================================
 
-function createWindow() {
+function createWindow(): Promise<void> {
+
+  if (win && !win.isDestroyed()) {
+    return Promise.resolve();
+  }
 
   win = new BrowserWindow({
 
@@ -126,23 +131,101 @@ function createWindow() {
 
   }
 
+
+  return new Promise<void>((resolve) => {
+
+    if (!win) {
+      resolve();
+      return;
+    }
+
+    if (win.webContents.isLoading()) {
+
+      win.webContents.once(
+        "did-finish-load",
+        () => {
+          resolve();
+        }
+      );
+
+    }
+    else {
+
+      resolve();
+
+    }
+
+  });
+
 }
 
 
 // =========================================================
+// AUTO UPDATE - BẮT BUỘC
+// =========================================================
+
+// =========================================================
+// AUTO UPDATE - BẮT BUỘC
+// =========================================================
+// =========================================================
 // AUTO UPDATE
+// =========================================================
+
+// =========================================================
+// AUTO UPDATE
+// =========================================================
+
+function sendUpdateEvent(
+  channel: string,
+  data?: unknown
+) {
+
+  if (!win || win.isDestroyed()) {
+    log.warn(
+      `[AUTO UPDATE] Cannot send event "${channel}" - window not ready`
+    );
+
+    return;
+  }
+
+  win.webContents.send(
+    channel,
+    data
+  );
+
+}
+
+
+// =========================================================
+// SETUP AUTO UPDATER
 // =========================================================
 
 function setupAutoUpdater() {
 
   autoUpdater.logger = log;
 
-
-  // Không tự tải ngay khi phát hiện update
+  // Không tự động tải.
+  // Người dùng phải bấm "Cập nhật".
   autoUpdater.autoDownload = false;
-
-  // Khi app thoát → cài bản đã tải
+autoUpdater.disableDifferentialDownload = true;
+autoUpdater.disableWebInstaller = true;
+  // Sau khi download xong,
+  // cho phép installer chạy khi app restart.
   autoUpdater.autoInstallOnAppQuit = true;
+
+  // Không nhận beta/prerelease.
+  autoUpdater.allowPrerelease = false;
+
+
+  log.info("========================================");
+  log.info("[AUTO UPDATE] SETUP");
+  log.info("[AUTO UPDATE] App version:", app.getVersion());
+  log.info("[AUTO UPDATE] Packaged:", app.isPackaged);
+  log.info(
+    "[AUTO UPDATE] autoDownload:",
+    autoUpdater.autoDownload
+  );
+  log.info("========================================");
 
 
   // =======================================================
@@ -154,7 +237,11 @@ function setupAutoUpdater() {
     () => {
 
       log.info(
-        "[AUTO UPDATE] Đang kiểm tra bản cập nhật..."
+        "[AUTO UPDATE] CHECKING FOR UPDATE..."
+      );
+
+      sendUpdateEvent(
+        "update:checking"
       );
 
     }
@@ -169,30 +256,78 @@ function setupAutoUpdater() {
     "update-available",
     (info) => {
 
+      log.info("========================================");
+
       log.info(
-        "[AUTO UPDATE] Có phiên bản mới:",
+        "[AUTO UPDATE] UPDATE AVAILABLE"
+      );
+
+      log.info(
+        "[AUTO UPDATE] Current:",
+        app.getVersion()
+      );
+
+      log.info(
+        "[AUTO UPDATE] New:",
         info.version
       );
 
+      log.info(
+        "[AUTO UPDATE] WAITING FOR USER..."
+      );
 
-      // Tự động download
-      autoUpdater.downloadUpdate();
+      log.info("========================================");
+
+
+      sendUpdateEvent(
+        "update:available",
+        {
+          version: info.version,
+
+          releaseDate:
+            info.releaseDate,
+
+          releaseNotes:
+            info.releaseNotes,
+        }
+      );
 
     }
   );
 
 
   // =======================================================
-  // UPDATE NOT AVAILABLE
+  // NO UPDATE
   // =======================================================
 
   autoUpdater.on(
     "update-not-available",
     (info) => {
 
+      log.info("========================================");
+
       log.info(
-        "[AUTO UPDATE] Đang dùng phiên bản mới nhất:",
+        "[AUTO UPDATE] NO UPDATE"
+      );
+
+      log.info(
+        "[AUTO UPDATE] Current:",
+        app.getVersion()
+      );
+
+      log.info(
+        "[AUTO UPDATE] Latest:",
         info.version
+      );
+
+      log.info("========================================");
+
+
+      sendUpdateEvent(
+        "update:not-available",
+        {
+          version: info.version,
+        }
       );
 
     }
@@ -207,8 +342,31 @@ function setupAutoUpdater() {
     "download-progress",
     (progress) => {
 
+      const percent =
+        Number(
+          progress.percent.toFixed(1)
+        );
+
+
       log.info(
-        `[AUTO UPDATE] Download: ${progress.percent.toFixed(1)}%`
+        `[AUTO UPDATE] DOWNLOADING ${percent}%`
+      );
+
+
+      sendUpdateEvent(
+        "update:progress",
+        {
+          percent,
+
+          transferred:
+            progress.transferred,
+
+          total:
+            progress.total,
+
+          bytesPerSecond:
+            progress.bytesPerSecond,
+        }
       );
 
     }
@@ -216,22 +374,37 @@ function setupAutoUpdater() {
 
 
   // =======================================================
-  // UPDATE DOWNLOADED
+  // DOWNLOAD COMPLETE
   // =======================================================
 
   autoUpdater.on(
     "update-downloaded",
     (info) => {
 
+      log.info("========================================");
+
       log.info(
-        "[AUTO UPDATE] Đã tải xong:",
+        "[AUTO UPDATE] DOWNLOAD COMPLETE"
+      );
+
+      log.info(
+        "[AUTO UPDATE] Version:",
         info.version
       );
 
+      log.info(
+        "[AUTO UPDATE] WAITING FOR USER RESTART"
+      );
 
-      // Cài update
-      // và restart app
-      autoUpdater.quitAndInstall();
+      log.info("========================================");
+
+
+      sendUpdateEvent(
+        "update:downloaded",
+        {
+          version: info.version,
+        }
+      );
 
     }
   );
@@ -245,10 +418,113 @@ function setupAutoUpdater() {
     "error",
     (error) => {
 
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+
+      log.error("========================================");
+
       log.error(
         "[AUTO UPDATE] ERROR:",
-        error
+        message
       );
+
+      log.error("========================================");
+
+
+      sendUpdateEvent(
+        "update:error",
+        {
+          message,
+        }
+      );
+
+      // Không quit app.
+      // Người dùng vẫn tiếp tục sử dụng
+      // phiên bản hiện tại.
+
+    }
+  );
+
+
+  // =======================================================
+  // USER CLICK: CẬP NHẬT
+  // =======================================================
+
+  ipcMain.handle(
+    "update:download",
+    async () => {
+
+      log.info(
+        "[AUTO UPDATE] USER CLICKED UPDATE"
+      );
+
+
+      try {
+
+        await autoUpdater.downloadUpdate();
+
+
+        log.info(
+          "[AUTO UPDATE] DOWNLOAD REQUEST FINISHED"
+        );
+
+
+        return {
+          success: true,
+        };
+
+      }
+      catch (error) {
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+
+        log.error(
+          "[AUTO UPDATE] DOWNLOAD FAILED:",
+          message
+        );
+
+
+        return {
+          success: false,
+
+          error: message,
+        };
+
+      }
+
+    }
+  );
+
+
+  // =======================================================
+  // USER CLICK: KHỞI ĐỘNG LẠI
+  // =======================================================
+
+  ipcMain.handle(
+    "update:install",
+    () => {
+
+      log.info(
+        "[AUTO UPDATE] USER CLICKED RESTART & INSTALL"
+      );
+
+
+      autoUpdater.quitAndInstall(
+        false,
+        true
+      );
+
+
+      return {
+        success: true,
+      };
 
     }
   );
@@ -262,6 +538,29 @@ function setupAutoUpdater() {
 
 app.whenReady()
 .then(async () => {
+
+  log.info("========================================");
+
+  log.info(
+    "[MAIN] APP START"
+  );
+
+  log.info(
+    "[MAIN] VERSION:",
+    app.getVersion()
+  );
+
+  log.info(
+    "[MAIN] PACKAGED:",
+    app.isPackaged
+  );
+
+  log.info(
+    "[MAIN] LOG FILE:",
+    log.transports.file.getFile().path
+  );
+
+  log.info("========================================");
 
 
   // =======================================================
@@ -293,29 +592,88 @@ app.whenReady()
 
 
   // =======================================================
-  // WINDOW
+  // DEVELOPMENT
   // =======================================================
 
-  createWindow();
+  if (!app.isPackaged) {
+
+    log.info(
+      "[MAIN] DEVELOPMENT MODE"
+    );
 
 
-  // =======================================================
-  // AUTO UPDATE
-  // =======================================================
+    createWindow();
 
-  if (!VITE_DEV_SERVER_URL) {
-
-    setupAutoUpdater();
-
-
-    // Đợi app khởi động xong rồi mới check
-    setTimeout(() => {
-
-      autoUpdater.checkForUpdates();
-
-    }, 3000);
+    return;
 
   }
+
+
+  // =======================================================
+  // PRODUCTION
+  // =======================================================
+
+  log.info(
+    "[MAIN] PRODUCTION MODE"
+  );
+
+
+  // -------------------------------------------------------
+  // QUAN TRỌNG
+  // -------------------------------------------------------
+  // Phải tạo window TRƯỚC khi check update.
+  //
+  // Nếu không:
+  //
+  // update-available
+  //        ↓
+  // sendUpdateEvent()
+  //        ↓
+  // win === null
+  //        ↓
+  // React không nhận được event
+  // -------------------------------------------------------
+setupAutoUpdater();
+
+await createWindow();
+
+setTimeout(async () => {
+
+  try {
+
+    log.info(
+      "[AUTO UPDATE] CALLING checkForUpdates()..."
+    );
+
+    await autoUpdater.checkForUpdates();
+
+    log.info(
+      "[AUTO UPDATE] checkForUpdates() FINISHED"
+    );
+
+  }
+  catch (error) {
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    log.error(
+      "[AUTO UPDATE] CHECK FAILED:",
+      message
+    );
+
+    sendUpdateEvent(
+      "update:error",
+      {
+        message,
+      }
+    );
+
+  }
+
+}, 1500);
 
 });
 

@@ -236,8 +236,6 @@ export default function HomePage() {
           >
             ➕ New Project
           </button>
-
-
  
         </div>
 
@@ -293,31 +291,6 @@ export default function HomePage() {
             />
 
           </div>
-
-
-
-          {/* ==================================================
-              WAVEFORM
-          ================================================== */}
-
-          <div className="waveform">
-
-            {project.audioFile ? (
-
-              <>
-                🎵 Audio Imported
-              </>
-
-            ) : (
-
-              <>
-                Audio Waveform
-              </>
-
-            )}
-
-          </div>
-
 
 
           {/* ==================================================
