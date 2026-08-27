@@ -84,7 +84,8 @@ function handleBack() {
 
     const [email, setEmail] =
         useState("");
-
+const [displayName, setDisplayName] =
+    useState("");
 
     const [password, setPassword] =
         useState("");
@@ -380,7 +381,17 @@ navigate("/", {
 
         const cleanEmail =
             email.trim();
+const cleanDisplayName =
+    displayName.trim();
+    if (!cleanDisplayName) {
 
+    setError(
+        "Vui lòng nhập tên."
+    );
+
+    return;
+
+}
 
         if (!cleanEmail) {
 
@@ -425,18 +436,29 @@ navigate("/", {
 
         try {
 
-            const {
-                data,
-                error,
-            } =
-                await supabase.auth.signUp({
+        const {
+    data,
+    error,
+} =
+    await supabase.auth.signUp({
 
-                    email:
-                        cleanEmail,
+        email:
+            cleanEmail,
 
-                    password,
+        password,
 
-                });
+        options: {
+
+            data: {
+
+                display_name:
+                    cleanDisplayName,
+
+            },
+
+        },
+
+    });
 
 
             if (error) {
@@ -613,17 +635,24 @@ async function handleVerifyRegisterOtp() {
         // 3. TẠO PROFILE
         // =====================================================
 
-        const {
-            error: profileError,
-        } = await supabase
-            .from("profiles")
-            .insert({
+   const {
+    error: profileError,
+} = await supabase
+    .from("profiles")
+    .insert({
 
-                id: user.id,
+        id: user.id,
 
-                email: user.email,
+        email:
+            user.email,
 
-            });
+        display_name:
+            displayName.trim(),
+
+        is_active:
+            true,
+
+    });
 
         if (profileError) {
             throw profileError;
@@ -648,7 +677,7 @@ async function handleVerifyRegisterOtp() {
 
         setConfirmPassword("");
 
-
+setDisplayName("");
         // =====================================================
         // 5. QUAY VỀ
         // =====================================================
@@ -698,35 +727,52 @@ async function handleResendRegisterOtp() {
         return;
     }
 
+    if (loading) {
+        return;
+    }
+
     setLoading(true);
 
     try {
 
+        console.log("[REGISTER OTP RESEND] Requesting:", cleanEmail);
+
         const {
+            data,
             error,
         } = await supabase.auth.resend({
             type: "signup",
             email: cleanEmail,
         });
 
+        console.log(
+            "[REGISTER OTP RESEND] Response:",
+            {
+                data,
+                error,
+            }
+        );
+
         if (error) {
             throw error;
         }
 
+        // Xóa mã cũ khỏi ô nhập
         setOtp("");
 
+        // Reset timer UI
         setOtpExpiresAt(
             Date.now() + 5 * 60 * 1000
         );
 
         setMessage(
-            `Mã OTP mới đã được gửi tới ${cleanEmail}.`
+            `Đã gửi mã OTP mới tới ${cleanEmail}. Hãy kiểm tra email mới nhất.`
         );
 
     } catch (err) {
 
         console.error(
-            "RESEND REGISTER OTP ERROR:",
+            "[REGISTER OTP RESEND ERROR]",
             err
         );
 
@@ -1502,7 +1548,26 @@ async function handleResetPassword() {
                                 handleRegister
                             }
                         >
+<div className="profile-field">
 
+    <label>
+        Tên hiển thị
+    </label>
+
+    <input
+        type="text"
+        value={displayName}
+        onChange={e =>
+            setDisplayName(
+                e.target.value
+            )
+        }
+        placeholder="Nhập tên của bạn"
+        autoComplete="name"
+        disabled={loading}
+    />
+
+</div>
                             <div className="profile-field">
 
                                 <label>

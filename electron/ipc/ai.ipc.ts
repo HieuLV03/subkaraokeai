@@ -7,13 +7,28 @@ import fs from "fs";
 
 
 import {
-  runWhisperX
-} from "../../python/spawn";
+  runWhisperX,
+  WhisperController
+} from "../../runtime/python/spawn";
 
 
+// ============================================================
+// CURRENT WHISPERX PROCESS
+// ============================================================
+
+let currentWhisper: WhisperController | null = null;
+
+
+// ============================================================
+// REGISTER AI IPC
+// ============================================================
 
 export function registerAIIPC() {
 
+
+  // ==========================================================
+  // GENERATE LYRICS
+  // ==========================================================
 
   ipcMain.handle(
 
@@ -23,111 +38,280 @@ export function registerAIIPC() {
 
       event,
 
-      data:{
-        audioFile:string;
+      data: {
+        audioFile: string;
       }
 
-    )=>{
+    ) => {
 
 
       console.log(
-        "Start WhisperX:",
+        "========================================"
+      );
+
+      console.log(
+        "[AI IPC] Start WhisperX:"
+      );
+
+      console.log(
+        "[AI IPC] Audio:",
         data.audioFile
       );
 
+      console.log(
+        "========================================"
+      );
 
 
-      // check file
+      // ======================================================
+      // CHECK FILE
+      // ======================================================
 
-      if(
+      if (
         !fs.existsSync(
           data.audioFile
         )
-      ){
+      ) {
 
         console.log(
-          "Audio not found:",
+          "[AI IPC] Audio not found:",
           data.audioFile
         );
 
 
         return {
 
-          started:false,
+          started: false,
 
-          error:"Audio file not found"
+          error:
+            "Audio file not found"
 
         };
 
       }
 
 
+      // ======================================================
+      // CANCEL OLD PROCESS
+      // ======================================================
 
-      runWhisperX(
+      if (
+        currentWhisper
+      ) {
 
-        data.audioFile,
+        console.log(
+          "[AI IPC] Existing WhisperX found."
+        );
 
-
-        (result)=>{
-
-
-          console.log(
-            "Python:",
-            result
-          );
-
+        console.log(
+          "[AI IPC] Cancelling old process..."
+        );
 
 
-          // progress
+        currentWhisper.cancel();
 
-          if(
-            result.type==="progress"
-          ){
 
-            event.sender.send(
+        currentWhisper =
+          null;
 
-              "ai:progress",
+      }
 
+
+      // ======================================================
+      // START WHISPERX
+      // ======================================================
+
+      currentWhisper =
+        runWhisperX(
+
+          data.audioFile,
+
+
+          (result) => {
+
+
+            console.log(
+              "[AI IPC] Python:",
               result
-
             );
+
+
+            // ==================================================
+            // PROGRESS
+            // ==================================================
+
+            if (
+              result.type ===
+              "progress"
+            ) {
+
+              event.sender.send(
+
+                "ai:progress",
+
+                result
+
+              );
+
+            }
+
+
+            // ==================================================
+            // RESULT
+            // ==================================================
+
+            if (
+              result.type ===
+              "result"
+            ) {
+
+              console.log(
+                "[AI IPC] RESULT FROM PYTHON:"
+              );
+
+
+              console.dir(
+                result,
+                {
+                  depth: null
+                }
+              );
+
+
+              event.sender.send(
+
+                "lyrics-result",
+
+                result.lyrics
+
+              );
+
+            }
 
           }
 
+        );
 
 
-          // finished
+      // ======================================================
+      // FAILED TO START
+      // ======================================================
 
-       if (result.type === "result") {
+      if (
+        !currentWhisper
+      ) {
 
-    console.log("RESULT FROM PYTHON:");
-    console.dir(result, { depth: null });
-
-    event.sender.send(
-        "lyrics-result",
-        result.lyrics
-    );
-
-}
+        console.error(
+          "[AI IPC] WhisperX failed to start."
+        );
 
 
-        }
+        return {
+
+          started: false,
+
+          error:
+            "Không thể khởi động WhisperX."
+
+        };
+
+      }
 
 
-      );
-
-
+      // ======================================================
+      // RETURN
+      // ======================================================
 
       return {
 
-        started:true
+        started: true
 
       };
-
 
     }
 
   );
 
+
+  // ==========================================================
+  // CANCEL WHISPERX
+  // ==========================================================
+
+  ipcMain.handle(
+
+    "ai:cancel",
+
+    async () => {
+
+
+      console.log(
+        "========================================"
+      );
+
+      console.log(
+        "[AI IPC] Cancel WhisperX requested"
+      );
+
+
+      if (
+        !currentWhisper
+      ) {
+
+        console.log(
+          "[AI IPC] No WhisperX process running."
+        );
+
+
+        console.log(
+          "========================================"
+        );
+
+
+        return {
+
+          success: false,
+
+          message:
+            "Không có tiến trình AI đang chạy."
+
+        };
+
+      }
+
+
+      // ======================================================
+      // CANCEL
+      // ======================================================
+
+      currentWhisper.cancel();
+
+
+      // ======================================================
+      // CLEAR CURRENT PROCESS
+      // ======================================================
+
+      currentWhisper =
+        null;
+
+
+      console.log(
+        "[AI IPC] WhisperX cancelled."
+      );
+
+
+      console.log(
+        "========================================"
+      );
+
+
+      return {
+
+        success: true
+
+      };
+
+    }
+
+  );
 
 }

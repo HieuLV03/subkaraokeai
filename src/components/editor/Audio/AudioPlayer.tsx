@@ -10,64 +10,69 @@ export default function AudioPlayer() {
     const audioRef =
         useRef<HTMLAudioElement | null>(null);
 
-    const [audioSrc, setAudioSrc] = useState("");
+    const [audioSrc, setAudioSrc] =
+        useState("");
 
 
-    // ==========================
+    // =========================================================
     // PROJECT
-    // ==========================
+    // =========================================================
 
-    const audioFile = useProjectStore(
-        state => state.project?.audioFile
-    );
-
-
-    // ==========================
-    // EDITOR STORE
-    // ==========================
-
-    const playing = useEditorStore(
-        state => state.playing
-    );
-
-    const currentTime = useEditorStore(
-        state => state.currentTime
-    );
-
-    const playbackRate = useEditorStore(
-        state => state.playbackRate
-    );
-
-    const volume = useEditorStore(
-        state => state.volume
-    );
+    const audioFile =
+        useProjectStore(
+            state => state.project?.audioFile
+        );
 
 
-    const play = useEditorStore(
-        state => state.play
-    );
+    // =========================================================
+    // EDITOR STATE
+    // =========================================================
 
-    const pause = useEditorStore(
-        state => state.pause
-    );
+    const playing =
+        useEditorStore(
+            state => state.playing
+        );
+
+    const currentTime =
+        useEditorStore(
+            state => state.currentTime
+        );
+
+    const playbackRate =
+        useEditorStore(
+            state => state.playbackRate
+        );
+
+    const volume =
+        useEditorStore(
+            state => state.volume
+        );
 
 
-    const setCurrentTime = useEditorStore(
-        state => state.setCurrentTime
-    );
+    const pause =
+        useEditorStore(
+            state => state.pause
+        );
 
-    const setDuration = useEditorStore(
-        state => state.setDuration
-    );
+    const setCurrentTime =
+        useEditorStore(
+            state => state.setCurrentTime
+        );
 
-    const setAudioRef = useEditorStore(
-        state => state.setAudioRef
-    );
+    const setDuration =
+        useEditorStore(
+            state => state.setDuration
+        );
+
+    const setAudioRef =
+        useEditorStore(
+            state => state.setAudioRef
+        );
 
 
-    // ==========================
+    // =========================================================
     // AUDIO REF
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
 
@@ -84,34 +89,51 @@ export default function AudioPlayer() {
     }, [setAudioRef]);
 
 
-    // ==========================
+    // =========================================================
     // AUDIO FILE
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
+
+        // =====================================================
+        // MANUAL MODE
+        //
+        // Không có audio
+        // AudioPlayer không làm MASTER
+        // Preview/video sẽ tự chạy.
+        // =====================================================
 
         if (!audioFile) {
 
             setAudioSrc("");
 
-            setCurrentTime(0);
-
-            setDuration(0);
-
-            pause();
-
             return;
+
         }
 
+
+        // =====================================================
+        // AI MODE / AUDIO MODE
+        // =====================================================
 
         const filename =
             audioFile
                 .split(/[\\/]/)
-                .pop()!;
+                .pop();
+
+        if (!filename) {
+
+            setAudioSrc("");
+
+            return;
+
+        }
 
 
         const url =
-            `http://127.0.0.1:38555/imports/${filename}`;
+            `http://127.0.0.1:38555/imports/${encodeURIComponent(
+                filename
+            )}`;
 
 
         console.log(
@@ -125,13 +147,9 @@ export default function AudioPlayer() {
         );
 
 
-        /*
-         * Audio mới:
-         *
-         * 1. Dừng
-         * 2. Về đầu
-         * 3. Load audio
-         */
+        // =====================================================
+        // AUDIO MỚI
+        // =====================================================
 
         pause();
 
@@ -149,29 +167,33 @@ export default function AudioPlayer() {
     ]);
 
 
-    // ==========================
+    // =========================================================
     // LOADED METADATA
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
 
         const audio =
             audioRef.current;
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
+
+
+        // Không có audio
+        if (!audioSrc) {
+            return;
+        }
 
 
         const loaded = () => {
 
             console.log(
-                "duration =",
+                "Audio duration =",
                 audio.duration
             );
 
-
-            /*
-             * Luôn bắt đầu từ đầu
-             */
 
             audio.currentTime = 0;
 
@@ -181,10 +203,6 @@ export default function AudioPlayer() {
                 audio.duration
             );
 
-
-            /*
-             * Không tự chạy
-             */
 
             audio.pause();
 
@@ -209,23 +227,46 @@ export default function AudioPlayer() {
         };
 
     }, [
+        audioSrc,
         setCurrentTime,
         setDuration,
         pause
     ]);
 
 
-    // ==========================
+    // =========================================================
     // PLAY / PAUSE
-    // ==========================
+    //
+    // CHỈ AUDIO MODE MỚI ĐƯỢC AUDIOPLAYER ĐIỀU KHIỂN
+    // =========================================================
 
     useEffect(() => {
 
         const audio =
             audioRef.current;
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
 
+
+        // =====================================================
+        // MANUAL MODE
+        //
+        // Không có audio => bỏ qua hoàn toàn.
+        // Không gọi audio.play()
+        // =====================================================
+
+        if (!audioSrc) {
+
+            return;
+
+        }
+
+
+        // =====================================================
+        // AUDIO MODE
+        // =====================================================
 
         if (playing) {
 
@@ -238,16 +279,12 @@ export default function AudioPlayer() {
                         error
                     );
 
-                    /*
-                     * Browser từ chối play
-                     * thì trả state về pause.
-                     */
-
                     pause();
 
                 });
 
-        } else {
+        }
+        else {
 
             audio.pause();
 
@@ -255,20 +292,30 @@ export default function AudioPlayer() {
 
     }, [
         playing,
+        audioSrc,
         pause
     ]);
 
 
-    // ==========================
+    // =========================================================
     // SEEK
-    // ==========================
+    //
+    // CHỈ SEEK AUDIO KHI CÓ AUDIO
+    // =========================================================
 
     useEffect(() => {
 
         const audio =
             audioRef.current;
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
+
+
+        if (!audioSrc) {
+            return;
+        }
 
 
         if (
@@ -278,17 +325,29 @@ export default function AudioPlayer() {
             ) > 0.03
         ) {
 
-            audio.currentTime =
-                currentTime;
+            try {
+
+                audio.currentTime =
+                    currentTime;
+
+            }
+            catch {
+
+                // Audio chưa ready
+
+            }
 
         }
 
-    }, [currentTime]);
+    }, [
+        currentTime,
+        audioSrc
+    ]);
 
 
-    // ==========================
+    // =========================================================
     // PLAYBACK RATE
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
 
@@ -299,12 +358,14 @@ export default function AudioPlayer() {
         audioRef.current.playbackRate =
             playbackRate;
 
-    }, [playbackRate]);
+    }, [
+        playbackRate
+    ]);
 
 
-    // ==========================
+    // =========================================================
     // VOLUME
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
 
@@ -315,19 +376,30 @@ export default function AudioPlayer() {
         audioRef.current.volume =
             volume;
 
-    }, [volume]);
+    }, [
+        volume
+    ]);
 
 
-    // ==========================
+    // =========================================================
     // CURRENT TIME
-    // ==========================
+    //
+    // AUDIO LÀ MASTER CHỈ KHI CÓ AUDIO
+    // =========================================================
 
     useEffect(() => {
 
         const audio =
             audioRef.current;
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
+
+
+        if (!audioSrc) {
+            return;
+        }
 
 
         let animationFrame = 0;
@@ -366,19 +438,29 @@ export default function AudioPlayer() {
 
         };
 
-    }, [setCurrentTime]);
+    }, [
+        audioSrc,
+        setCurrentTime
+    ]);
 
 
-    // ==========================
+    // =========================================================
     // AUDIO ENDED
-    // ==========================
+    // =========================================================
 
     useEffect(() => {
 
         const audio =
             audioRef.current;
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
+
+
+        if (!audioSrc) {
+            return;
+        }
 
 
         const handleEnded = () => {
@@ -408,10 +490,15 @@ export default function AudioPlayer() {
         };
 
     }, [
+        audioSrc,
         pause,
         setCurrentTime
     ]);
 
+
+    // =========================================================
+    // RENDER
+    // =========================================================
 
     return (
 
@@ -420,8 +507,8 @@ export default function AudioPlayer() {
             src={audioSrc}
             preload="auto"
             muted
-
         />
 
     );
+
 }

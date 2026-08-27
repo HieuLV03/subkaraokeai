@@ -146,7 +146,34 @@ const startTiming = useLyricsStore(
             })
         );
     };
+// ============================
+// NEW TEXT
+// ============================
+const addNewLine = () => {
+    const newId = crypto.randomUUID();
 
+    updateLyrics((old) => {
+        // Nếu đã có line thì đặt line mới
+        // ngay sau line cuối cùng
+        const lastLine = old[old.length - 1];
+
+        const newLine = {
+            id: newId,
+            text: "",
+            start: lastLine ? lastLine.end : 0,
+            end: lastLine ? lastLine.end : 0,
+            words: [],
+        };
+
+        return [
+            ...old,
+            newLine,
+        ];
+    });
+
+    // Cho textarea mới tự focus
+    setEditingId(newId);
+};
     return (
         <div className="edit-line-page">
             {/* LIST */}
@@ -302,6 +329,12 @@ const startTiming = useLyricsStore(
 
             {/* FOOTER */}
             <div className="edit-line-footer">
+                    <button
+        className="edit-line-new"
+        onClick={addNewLine}
+    >
+        + New Text
+    </button>
        <button
 className="edit-line-next"
 onClick={() => {

@@ -38,13 +38,11 @@
 ========================================================= */
 
 .home-toolbar {
-
     height: 58px;
 
     flex: 0 0 auto;
 
     display: flex;
-
     align-items: center;
 
     padding: 0 18px;
@@ -74,68 +72,12 @@
 ========================================================= */
 
 .home-toolbar-left {
-
     min-width: 240px;
 
     display: flex;
-
     align-items: center;
 
     gap: 12px;
-}
-
-
-.toolbar-back {
-
-    width: 36px;
-    height: 36px;
-
-    flex: 0 0 auto;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border: 1px solid #334155;
-
-    border-radius: 8px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #1e293b,
-            #151d26
-        );
-
-    color: #94a3b8;
-
-    font-size: 19px;
-
-    cursor: pointer;
-
-    transition:
-        background 0.18s ease,
-        color 0.18s ease,
-        border-color 0.18s ease,
-        box-shadow 0.18s ease;
-}
-
-
-.toolbar-back:hover {
-
-    color: #e2e8f0;
-
-    background:
-        linear-gradient(
-            135deg,
-            #273548,
-            #1c2733
-        );
-
-    border-color: #475569;
-
-    box-shadow:
-        0 0 12px rgba(59, 130, 246, 0.08);
 }
 
 
@@ -144,7 +86,6 @@
 ========================================================= */
 
 .toolbar-title {
-
     display: flex;
 
     flex-direction: column;
@@ -156,7 +97,6 @@
 
 
 .toolbar-title strong {
-
     color: #f8fafc;
 
     font-size: 14px;
@@ -168,7 +108,6 @@
 
 
 .toolbar-title span {
-
     color: #64748b;
 
     font-size: 11px;
@@ -182,7 +121,6 @@
 ========================================================= */
 
 .home-toolbar-center {
-
     flex: 1;
 
     min-width: 0;
@@ -198,7 +136,6 @@
 
 
 .toolbar-btn {
-
     height: 34px;
 
     padding: 0 15px;
@@ -232,7 +169,6 @@
 
 
 .toolbar-btn:hover {
-
     color: #e2e8f0;
 
     background: #1d2732;
@@ -242,7 +178,6 @@
 
 
 .toolbar-btn.active {
-
     color: #67e8f9;
 
     background:
@@ -256,20 +191,11 @@
 }
 
 
-.toolbar-btn:disabled {
-
-    opacity: 0.30;
-
-    cursor: not-allowed;
-}
-
-
 /* =========================================================
    TOOLBAR RIGHT
 ========================================================= */
 
 .home-toolbar-right {
-
     min-width: 240px;
 
     display: flex;
@@ -287,7 +213,6 @@
 ========================================================= */
 
 .toolbar-profile-btn {
-
     height: 36px;
 
     padding: 0 12px;
@@ -322,7 +247,6 @@
 
 
 .toolbar-profile-btn:hover {
-
     color: #f8fafc;
 
     border-color: #475569;
@@ -340,13 +264,13 @@
 
 
 .toolbar-profile-icon {
-
     width: 22px;
     height: 22px;
 
     display: flex;
 
     align-items: center;
+
     justify-content: center;
 
     border-radius: 50%;
@@ -359,7 +283,6 @@
 
 
 .toolbar-profile-text {
-
     font-size: 12px;
 
     font-weight: 600;
@@ -371,7 +294,6 @@
 ========================================================= */
 
 .home-header {
-
     flex: 0 0 auto;
 
     padding: 34px 24px 24px;
@@ -381,7 +303,6 @@
 
 
 .home-header h1 {
-
     margin: 0;
 
     color: #f8fafc;
@@ -398,7 +319,6 @@
 
 
 .home-header p {
-
     margin: 8px 0 0;
 
     color: #64748b;
@@ -410,29 +330,27 @@
 
 
 /* =========================================================
-   WELCOME — NO PROJECT
+   NEW PROJECT
 ========================================================= */
 
 .welcome {
-
     width: min(720px, calc(100% - 48px));
 
     margin: 10px auto 0;
 
     display: grid;
 
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
 
     gap: 14px;
 }
 
 
 /* =========================================================
-   MAIN CARD
+   HOME CARD
 ========================================================= */
 
 .card {
-
     min-height: 70px;
 
     padding: 16px 20px;
@@ -474,7 +392,6 @@
 
 
 .card:hover {
-
     transform: translateY(-1px);
 
     color: #f8fafc;
@@ -495,273 +412,7 @@
 
 
 .card:active {
-
     transform: translateY(0);
-}
-
-
-.card:disabled {
-
-    opacity: 0.35;
-
-    cursor: not-allowed;
-
-    transform: none;
-
-    box-shadow: none;
-}
-
-
-/* =========================================================
-   WORKSPACE
-========================================================= */
-
-.workspace {
-
-    width: min(900px, calc(100% - 48px));
-
-    margin: 0 auto;
-
-    padding-bottom: 30px;
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 16px;
-
-    box-sizing: border-box;
-
-    overflow-y: auto;
-}
-
-
-.workspace::-webkit-scrollbar {
-
-    width: 7px;
-}
-
-
-.workspace::-webkit-scrollbar-track {
-
-    background: transparent;
-}
-
-
-.workspace::-webkit-scrollbar-thumb {
-
-    background: #334155;
-
-    border-radius: 999px;
-}
-
-
-.workspace::-webkit-scrollbar-thumb:hover {
-
-    background: #475569;
-}
-
-
-/* =========================================================
-   WORKSPACE HEADER
-========================================================= */
-
-.workspace-header {
-
-    padding: 16px 18px;
-
-    background:
-        linear-gradient(
-            145deg,
-            #1b2632,
-            #151d26
-        );
-
-    border: 1px solid #303d4d;
-
-    border-radius: 10px;
-
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.025);
-}
-
-
-.workspace-header h2 {
-
-    margin: 0;
-
-    color: #e2e8f0;
-
-    font-size: 18px;
-
-    font-weight: 700;
-}
-
-
-/* =========================================================
-   WORKFLOW
-========================================================= */
-
-.workflow {
-
-    height: 5px;
-
-    display: grid;
-
-    grid-template-columns: 1fr 1fr;
-
-    gap: 5px;
-}
-
-
-.workflow-step {
-
-    border-radius: 999px;
-
-    background: #263241;
-
-    transition:
-        background 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-
-.workflow-step.completed {
-
-    background: #22d3ee;
-
-    box-shadow:
-        0 0 10px rgba(34, 211, 238, 0.25);
-}
-
-
-.workflow-step.active {
-
-    background: #3b82f6;
-
-    box-shadow:
-        0 0 10px rgba(59, 130, 246, 0.25);
-}
-
-
-.workflow-step.disabled {
-
-    background: #202a36;
-}
-
-
-/* =========================================================
-   WAVEFORM
-========================================================= */
-
-.waveform {
-
-    height: 120px;
-
-    flex: 0 0 auto;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    box-sizing: border-box;
-
-    border: 1px solid #303d4d;
-
-    border-radius: 10px;
-
-    background:
-        linear-gradient(
-            180deg,
-            #121a23,
-            #0f161d
-        );
-
-    color: #526174;
-
-    font-size: 12px;
-
-    letter-spacing: 0.4px;
-
-    position: relative;
-
-    overflow: hidden;
-}
-
-
-/* subtle waveform lines */
-
-.waveform::before {
-
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    opacity: 0.18;
-
-    background:
-        repeating-linear-gradient(
-            90deg,
-            transparent 0,
-            transparent 8px,
-            rgba(96, 165, 250, 0.15) 9px,
-            transparent 10px
-        );
-}
-
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-.dashboard {
-
-    display: grid;
-
-    grid-template-columns: repeat(2, 1fr);
-
-    gap: 12px;
-
-    margin-top: 2px;
-}
-
-
-.dashboard .card {
-
-    min-height: 62px;
-
-    margin: 0;
-}
-
-
-/* =========================================================
-   WORKFLOW MESSAGE
-========================================================= */
-
-.workflow-message {
-
-    margin: 0;
-
-    padding: 11px 14px;
-
-    color: #7f8da0;
-
-    background:
-        rgba(15, 23, 32, 0.75);
-
-    border: 1px solid #293544;
-
-    border-radius: 8px;
-
-    font-size: 12px;
-
-    line-height: 1.5;
-
-    text-align: center;
 }
 
 
@@ -773,72 +424,55 @@
 
     .home-toolbar-left,
     .home-toolbar-right {
-
         min-width: auto;
     }
 
-    .toolbar-title {
-
-        display: none;
-    }
 
     .toolbar-profile-text {
-
         display: none;
     }
 
-    .home-header {
 
+    .home-header {
         padding-top: 24px;
     }
 
-    .home-header h1 {
 
+    .home-header h1 {
         font-size: 25px;
     }
 
-    .workspace,
-    .welcome {
 
+    .welcome {
         width: calc(100% - 28px);
     }
-
-    .welcome {
-
-        grid-template-columns: 1fr;
-    }
-
-    .dashboard {
-
-        grid-template-columns: 1fr;
-    }
-
 }
 
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
 
 @media (max-width: 480px) {
 
     .home-toolbar {
-
         padding: 0 10px;
     }
 
-    .home-toolbar-center {
 
+    .home-toolbar-center {
         gap: 2px;
     }
 
-    .toolbar-btn {
 
+    .toolbar-btn {
         padding: 0 9px;
 
         font-size: 11px;
     }
 
-    .workspace,
-    .welcome {
 
+    .welcome {
         width: calc(100% - 20px);
     }
-
 }

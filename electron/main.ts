@@ -1,14 +1,18 @@
 import {
   app,
-  BrowserWindow
+  BrowserWindow,
+  ipcMain
 } from "electron";
+
+import {
+  ensureRuntimeInstalled
+} from "./ai-manager";
 
 import {
   autoUpdater
 } from "electron-updater";
 
 import log from "electron-log";
-
 
 import {
   registerAudioIPC
@@ -41,13 +45,21 @@ import {
 import path from "node:path";
 
 
-const __dirname = path.dirname(
-  fileURLToPath(import.meta.url)
-);
+// =========================================================
+// PATH
+// =========================================================
+
+const __dirname =
+  path.dirname(
+    fileURLToPath(import.meta.url)
+  );
 
 
 process.env.APP_ROOT =
-  path.join(__dirname, "..");
+  path.join(
+    __dirname,
+    ".."
+  );
 
 
 export const VITE_DEV_SERVER_URL =
@@ -61,7 +73,21 @@ export const RENDERER_DIST =
   );
 
 
-let win: BrowserWindow | null = null;
+// =========================================================
+// WINDOW
+// =========================================================
+
+let win:
+  BrowserWindow | null = null;
+
+
+// =========================================================
+// UPDATE STATE
+// =========================================================
+
+let isUpdating = false;
+
+let updaterInitialized = false;
 
 
 // =========================================================
@@ -73,6 +99,7 @@ function createWindow() {
   win = new BrowserWindow({
 
     width: 1280,
+
     height: 800,
 
     show: false,
@@ -95,6 +122,10 @@ function createWindow() {
   });
 
 
+  // =======================================================
+  // SHOW WINDOW
+  // =======================================================
+
   win.once(
     "ready-to-show",
     () => {
@@ -105,6 +136,10 @@ function createWindow() {
   );
 
 
+  // =======================================================
+  // DEV
+  // =======================================================
+
   if (VITE_DEV_SERVER_URL) {
 
     win.loadURL(
@@ -114,6 +149,11 @@ function createWindow() {
     win.webContents.openDevTools();
 
   }
+
+
+  // =======================================================
+  // PRODUCTION
+  // =======================================================
 
   else {
 
@@ -130,19 +170,82 @@ function createWindow() {
 
 
 // =========================================================
-// AUTO UPDATE
+// SEND UPDATE EVENT
+// =========================================================
+
+function sendUpdate(
+  channel: string,
+  data?: unknown
+) {
+
+  if (
+    !win ||
+    win.isDestroyed()
+  ) {
+
+    return;
+
+  }
+
+
+  win.webContents.send(
+    channel,
+    data
+  );
+
+}
+
+
+// =========================================================
+// AUTO UPDATER
 // =========================================================
 
 function setupAutoUpdater() {
 
-  autoUpdater.logger = log;
+  if (updaterInitialized) {
+
+    return;
+
+  }
 
 
-  // Không tự tải ngay khi phát hiện update
-  autoUpdater.autoDownload = false;
+  updaterInitialized = true;
 
-  // Khi app thoát → cài bản đã tải
-  autoUpdater.autoInstallOnAppQuit = true;
+
+  // =======================================================
+  // LOGGER
+  // =======================================================
+
+  autoUpdater.logger =
+    log;
+
+
+  // =======================================================
+  // CONFIG
+  // =======================================================
+
+  /*
+   * QUAN TRỌNG:
+   *
+   * Không tự động download.
+   *
+   * Chỉ download khi người dùng
+   * bấm nút "Cập nhật".
+   */
+
+  autoUpdater.autoDownload =
+    false;
+
+
+  /*
+   * Không tự cài khi app đóng.
+   *
+   * Chúng ta sẽ chủ động
+   * quitAndInstall().
+   */
+
+  autoUpdater.autoInstallOnAppQuit =
+    false;
 
 
   // =======================================================
@@ -154,8 +257,16 @@ function setupAutoUpdater() {
     () => {
 
       log.info(
-        "[AUTO UPDATE] Đang kiểm tra bản cập nhật..."
+        "[AUTO UPDATE] Đang kiểm tra GitHub Releases..."
       );
+
+      /*
+       * KHÔNG gửi update:checking
+       *
+       * Vì chúng ta không muốn modal
+       * "Đang kiểm tra cập nhật..."
+       * xuất hiện trong app.
+       */
 
     }
   );
@@ -169,21 +280,38 @@ function setupAutoUpdater() {
     "update-available",
     (info) => {
 
+      isUpdating = false;
+
+
       log.info(
-        "[AUTO UPDATE] Có phiên bản mới:",
+        "[AUTO UPDATE] Có version mới:",
         info.version
       );
 
 
-      // Tự động download
-      autoUpdater.downloadUpdate();
+      /*
+       * CHỈ báo cho React rằng
+       * có version mới.
+       *
+       * KHÔNG download ở đây.
+       */
+
+      sendUpdate(
+        "update:available",
+        {
+
+          version:
+            info.version
+
+        }
+      );
 
     }
   );
 
 
   // =======================================================
-  // UPDATE NOT AVAILABLE
+  // NO UPDATE
   // =======================================================
 
   autoUpdater.on(
@@ -191,8 +319,20 @@ function setupAutoUpdater() {
     (info) => {
 
       log.info(
-        "[AUTO UPDATE] Đang dùng phiên bản mới nhất:",
+        "[AUTO UPDATE] Đang dùng version mới nhất:",
         info.version
+      );
+
+
+      isUpdating = false;
+
+
+      /*
+       * Báo cho React đóng modal.
+       */
+
+      sendUpdate(
+        "update:not-available"
       );
 
     }
@@ -207,8 +347,27 @@ function setupAutoUpdater() {
     "download-progress",
     (progress) => {
 
+      const percent =
+        Math.round(
+          progress.percent
+        );
+
+
       log.info(
-        `[AUTO UPDATE] Download: ${progress.percent.toFixed(1)}%`
+        `[AUTO UPDATE] Download: ${percent}%`
+      );
+
+
+      sendUpdate(
+        "update:progress",
+        {
+
+          percent,
+
+          message:
+            "Đang tải bản cập nhật..."
+
+        }
       );
 
     }
@@ -216,26 +375,34 @@ function setupAutoUpdater() {
 
 
   // =======================================================
-  // UPDATE DOWNLOADED
+  // DOWNLOAD COMPLETED
   // =======================================================
 
-  autoUpdater.on(
-    "update-downloaded",
-    (info) => {
+// =======================================================
+// DOWNLOAD COMPLETED
+// =======================================================
 
-      log.info(
-        "[AUTO UPDATE] Đã tải xong:",
-        info.version
-      );
+autoUpdater.on(
+  "update-downloaded",
+  (info) => {
 
+    isUpdating = true;
 
-      // Cài update
-      // và restart app
-      autoUpdater.quitAndInstall();
+    log.info(
+      "[AUTO UPDATE] Đã tải xong:",
+      info.version
+    );
 
-    }
-  );
+    sendUpdate(
+      "update:downloaded",
+      {
+        version:
+          info.version
+      }
+    );
 
+  }
+);
 
   // =======================================================
   // ERROR
@@ -250,6 +417,22 @@ function setupAutoUpdater() {
         error
       );
 
+
+      isUpdating = false;
+
+
+      sendUpdate(
+        "update:error",
+        {
+
+          message:
+            error instanceof Error
+              ? error.message
+              : "Không thể cập nhật."
+
+        }
+      );
+
     }
   );
 
@@ -257,67 +440,268 @@ function setupAutoUpdater() {
 
 
 // =========================================================
+// CHECK UPDATE
+// =========================================================
+
+async function checkForUpdate() {
+
+  /*
+   * DEV thì không check.
+   */
+
+  if (VITE_DEV_SERVER_URL) {
+
+    log.info(
+      "[AUTO UPDATE] DEV MODE - bỏ qua kiểm tra."
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * Kiểm tra GitHub Releases.
+   */
+
+  log.info(
+    "[AUTO UPDATE] Kiểm tra GitHub Releases..."
+  );
+
+
+  try {
+
+    await autoUpdater.checkForUpdates();
+
+  }
+
+  catch (error) {
+
+    log.error(
+      "[AUTO UPDATE] Check update error:",
+      error
+    );
+
+
+    /*
+     * Không khóa app nếu GitHub
+     * không truy cập được.
+     *
+     * Người dùng vẫn sử dụng app bình thường.
+     */
+
+    isUpdating = false;
+
+  }
+
+}
+
+
+// =========================================================
+// USER CLICK "CẬP NHẬT"
+// =========================================================
+
+ipcMain.on(
+  "update:download",
+  async () => {
+
+    if (isUpdating) {
+
+      return;
+
+    }
+
+
+    isUpdating = true;
+
+
+    log.info(
+      "[AUTO UPDATE] Người dùng bấm Cập nhật."
+    );
+
+
+    sendUpdate(
+      "update:downloading",
+      {
+
+        percent: 0,
+
+        message:
+          "Đang bắt đầu tải bản cập nhật..."
+
+      }
+    );
+
+
+    try {
+
+      await autoUpdater.downloadUpdate();
+
+    }
+
+    catch (error) {
+
+      log.error(
+        "[AUTO UPDATE] Download error:",
+        error
+      );
+
+
+      isUpdating = false;
+
+
+      sendUpdate(
+        "update:error",
+        {
+
+          message:
+            error instanceof Error
+              ? error.message
+              : "Không thể tải bản cập nhật."
+
+        }
+      );
+
+    }
+
+  }
+);
+
+ipcMain.on(
+  "update:install",
+  () => {
+
+    log.info(
+      "[AUTO UPDATE] Người dùng xác nhận đóng và mở lại."
+    );
+
+    autoUpdater.quitAndInstall(
+      true,
+      true
+    );
+
+  }
+);
+// =========================================================
+// RETRY
+// =========================================================
+
+ipcMain.on(
+  "update:retry",
+  async () => {
+
+    log.info(
+      "[AUTO UPDATE] Người dùng yêu cầu thử lại."
+    );
+
+
+    isUpdating = false;
+
+
+    await checkForUpdate();
+
+  }
+);
+
+
+// =========================================================
 // APP READY
 // =========================================================
 
 app.whenReady()
-.then(async () => {
+.then(
+  async () => {
+
+    // =====================================================
+    // WINDOW
+    // =====================================================
+
+    createWindow();
 
 
-  // =======================================================
-  // MEDIA SERVER
-  // =======================================================
+    // =====================================================
+    // AUTO UPDATE
+    // =====================================================
 
-  const mediaRoot =
-    process.env.APP_ROOT!;
+    if (
+      !VITE_DEV_SERVER_URL
+    ) {
 
-
-  await startMediaServer(
-    mediaRoot
-  );
+      setupAutoUpdater();
 
 
-  // =======================================================
-  // IPC
-  // =======================================================
+      /*
+       * Đợi renderer load xong.
+       *
+       * Sau đó kiểm tra GitHub Releases.
+       */
 
-  registerAudioIPC();
+      setTimeout(
+        () => {
 
-  registerVideoIPC();
+          checkForUpdate();
 
-  registerAIIPC();
+        },
+        2000
+      );
 
-  registerProjectIPC();
-
-  registerExportIPC();
-
-
-  // =======================================================
-  // WINDOW
-  // =======================================================
-
-  createWindow();
+    }
 
 
-  // =======================================================
-  // AUTO UPDATE
-  // =======================================================
+    // =====================================================
+    // AI RUNTIME
+    // =====================================================
 
-  if (!VITE_DEV_SERVER_URL) {
+    try {
 
-    setupAutoUpdater();
+      await ensureRuntimeInstalled();
 
 
-    // Đợi app khởi động xong rồi mới check
-    setTimeout(() => {
+      log.info(
+        "[RUNTIME] Runtime READY"
+      );
 
-      autoUpdater.checkForUpdates();
+    }
 
-    }, 3000);
+    catch (error) {
+
+      log.error(
+        "[RUNTIME] ERROR:",
+        error
+      );
+
+    }
+
+
+    // =====================================================
+    // MEDIA SERVER
+    // =====================================================
+
+    const mediaRoot =
+      process.env.APP_ROOT!;
+
+
+    await startMediaServer(
+      mediaRoot
+    );
+
+
+    // =====================================================
+    // IPC
+    // =====================================================
+
+    registerAudioIPC();
+
+    registerVideoIPC();
+
+    registerAIIPC();
+
+    registerProjectIPC();
+
+    registerExportIPC();
 
   }
-
-});
+);
 
 
 // =========================================================
@@ -335,6 +719,26 @@ app.on(
       app.quit();
 
       win = null;
+
+    }
+
+  }
+);
+
+
+// =========================================================
+// MACOS
+// =========================================================
+
+app.on(
+  "activate",
+  () => {
+
+    if (
+      BrowserWindow.getAllWindows().length === 0
+    ) {
+
+      createWindow();
 
     }
 

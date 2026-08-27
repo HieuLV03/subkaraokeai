@@ -2,7 +2,12 @@
   "name": "sub-karaoke-ai",
   "productName": "SubKaraokeAI",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.9",
+
+  "runtime": {
+    "ai": "1.0.0",
+    "tools": "1.0.0"
+  },
 
   "scripts": {
     "dev": "vite",
@@ -64,12 +69,8 @@
 
     "extraResources": [
       {
-        "from": "python",
-        "to": "python"
-      },
-      {
-        "from": "tools",
-        "to": "tools"
+        "from": "runtime",
+        "to": "runtime"
       }
     ],
 
@@ -80,6 +81,16 @@
         "nsis"
       ],
       "icon": "public/icon.ico"
+    },
+
+    "nsis": {
+      "artifactName": "SubKaraokeAI-Setup-${version}.${ext}",
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "SubKaraokeAI",
+      "include": "build/installer.nsh"
     },
 
     "publish": [

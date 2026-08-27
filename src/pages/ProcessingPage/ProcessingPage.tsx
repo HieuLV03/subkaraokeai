@@ -1,8 +1,15 @@
-import { useEffect } from "react";
+import {
+  useEffect,
+  useRef,
+} from "react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate
+} from "react-router-dom";
 
-import { useEditorStore } from "@/stores/editor.store";
+import {
+  useEditorStore
+} from "@/stores/editor.store";
 
 import {
   generateLyrics,
@@ -20,6 +27,14 @@ import {
 
 
 export default function ProcessingPage() {
+
+  // =========================================================
+  // CANCEL REF
+  // =========================================================
+
+  const cancelledRef =
+    useRef(false);
+
 
   // =========================================================
   // EDITOR STORE
@@ -90,6 +105,52 @@ export default function ProcessingPage() {
 
 
   // =========================================================
+  // CANCEL AI
+  // =========================================================
+
+  const cancelAI =
+    async () => {
+
+      console.log(
+        "[Processing] Cancelling AI..."
+      );
+
+
+      // Đánh dấu đã hủy
+      cancelledRef.current =
+        true;
+
+
+      try {
+
+        await window.electronAPI.invoke(
+          "ai:cancel"
+        );
+
+
+        console.log(
+          "[Processing] AI cancelled."
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "[Processing] Cancel AI error:",
+          error
+        );
+
+      }
+
+
+      // Quay về trang trước
+      navigate(-1);
+
+    };
+
+
+  // =========================================================
   // PROCESSING
   // =========================================================
 
@@ -114,6 +175,11 @@ export default function ProcessingPage() {
     }
 
 
+    // Reset trạng thái
+    cancelledRef.current =
+      false;
+
+
     console.log(
       "AI audio:",
       audioFile
@@ -127,6 +193,14 @@ export default function ProcessingPage() {
     const unsubscribeProgress =
       onAIProgress(
         event => {
+
+          // Nếu đã hủy thì bỏ qua
+          if (
+            cancelledRef.current
+          ) {
+            return;
+          }
+
 
           setProgress(
             event.progress,
@@ -144,6 +218,24 @@ export default function ProcessingPage() {
     const unsubscribeCompleted =
       onAICompleted(
         lyrics => {
+
+          // ==================================================
+          // QUAN TRỌNG
+          // Nếu user đã quay về thì bỏ qua kết quả
+          // ==================================================
+
+          if (
+            cancelledRef.current
+          ) {
+
+            console.log(
+              "[Processing] AI result ignored because cancelled."
+            );
+
+            return;
+
+          }
+
 
           // ================================================
           // MAP LYRICS
@@ -207,7 +299,6 @@ export default function ProcessingPage() {
 
 
           // ================================================
-          // QUAN TRỌNG
           // RESET WORKSPACE VỀ LINE
           // ================================================
 
@@ -256,6 +347,37 @@ export default function ProcessingPage() {
 
       unsubscribeCompleted();
 
+
+      // ====================================================
+      // Nếu ProcessingPage bị rời đi mà chưa cancel
+      // thì dừng AI
+      // ====================================================
+
+      if (
+        !cancelledRef.current
+      ) {
+
+        cancelledRef.current =
+          true;
+
+
+        window.electronAPI
+          .invoke(
+            "ai:cancel"
+          )
+          .catch(
+            error => {
+
+              console.error(
+                "[Processing] Cleanup cancel error:",
+                error
+              );
+
+            }
+          );
+
+      }
+
     };
 
   }, [
@@ -272,6 +394,24 @@ export default function ProcessingPage() {
     <div
       className="processing-page"
     >
+
+      {/* ===================================================
+          BACK BUTTON
+      =================================================== */}
+
+      <button
+        className="processing-back-button"
+        onClick={cancelAI}
+      >
+
+        ← Quay về
+
+      </button>
+
+
+      {/* ===================================================
+          PROCESSING BOX
+      =================================================== */}
 
       <div
         className="processing-box"
