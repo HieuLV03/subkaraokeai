@@ -7,10 +7,15 @@ import { useLyricsStore } from "@/stores/lyrics.store";
 
 export default function SyncRecorder() {
 
-    const audio =
+    // ========================================
+    // VIDEO MASTER CLOCK
+    // ========================================
+
+    const currentTime =
         useEditorStore(
-            state => state.audioRef
+            state => state.currentTime
         );
+
 
     const holding =
         useRef(false);
@@ -60,9 +65,6 @@ export default function SyncRecorder() {
             if (!holding.current)
                 return;
 
-            if (!audio)
-                return;
-
             const state =
                 useLyricsStore.getState();
 
@@ -87,12 +89,21 @@ export default function SyncRecorder() {
             if (!word)
                 return;
 
+            /*
+             * Lấy currentTime từ EditorStore
+             *
+             * currentTime này chính là
+             * video.currentTime
+             */
+
+            const time =
+                useEditorStore.getState().currentTime;
+
             state.updateWord(
                 line.id,
                 word.id,
                 {
-                    end:
-                        audio.currentTime
+                    end: time
                 }
             );
 
@@ -113,10 +124,6 @@ export default function SyncRecorder() {
             e: KeyboardEvent
         ) {
 
-            /*
-             * Không phải Space
-             */
-
             if (
                 e.code !== "Space"
             ) {
@@ -125,11 +132,8 @@ export default function SyncRecorder() {
 
 
             /*
-             * ĐANG GÕ TEXT
-             *
-             * → Không sync
-             * → Không preventDefault
-             * → Space được textarea xử lý
+             * Nếu đang nhập text
+             * thì Space vẫn là Space của textarea
              */
 
             if (isTyping(e)) {
@@ -148,16 +152,7 @@ export default function SyncRecorder() {
             }
 
 
-            /*
-             * Từ đây trở xuống
-             * Space mới là phím Sync
-             */
-
             e.preventDefault();
-
-
-            if (!audio)
-                return;
 
 
             const state =
@@ -202,24 +197,35 @@ export default function SyncRecorder() {
             holding.current = true;
 
 
-            startTime.current =
-                audio.currentTime;
+            /*
+             * VIDEO TIME
+             */
 
+            const time =
+                useEditorStore.getState().currentTime;
+
+            startTime.current =
+                time;
+
+
+            /*
+             * Set START
+             */
 
             state.updateWord(
                 line.id,
                 word.id,
                 {
-                    start:
-                        startTime.current,
-
-                    end:
-                        startTime.current,
-
+                    start: time,
+                    end: time,
                     synced: false
                 }
             );
 
+
+            /*
+             * Bắt đầu preview
+             */
 
             updatePreview();
 
@@ -227,7 +233,7 @@ export default function SyncRecorder() {
             console.log(
                 "SYNC START",
                 word.word,
-                startTime.current
+                time
             );
         }
 
@@ -242,10 +248,6 @@ export default function SyncRecorder() {
             e: KeyboardEvent
         ) {
 
-            /*
-             * Không phải Space
-             */
-
             if (
                 e.code !== "Space"
             ) {
@@ -253,21 +255,10 @@ export default function SyncRecorder() {
             }
 
 
-            /*
-             * ĐANG GÕ TEXT
-             *
-             * → Không sync
-             * → Không preventDefault
-             */
-
             if (isTyping(e)) {
                 return;
             }
 
-
-            /*
-             * Không có word đang sync
-             */
 
             if (
                 !holding.current
@@ -276,22 +267,14 @@ export default function SyncRecorder() {
             }
 
 
-            /*
-             * Kết thúc sync
-             */
-
             e.preventDefault();
-
-
-            if (!audio)
-                return;
 
 
             holding.current = false;
 
 
             /*
-             * Dừng requestAnimationFrame
+             * Dừng RAF
              */
 
             if (raf.current) {
@@ -305,11 +288,11 @@ export default function SyncRecorder() {
 
 
             /*
-             * Thời gian kết thúc
+             * VIDEO TIME
              */
 
             const end =
-                audio.currentTime;
+                useEditorStore.getState().currentTime;
 
 
             const state =
@@ -360,7 +343,8 @@ export default function SyncRecorder() {
 
                     end,
 
-                    synced: true
+                    synced:
+                        true
                 }
             );
 
@@ -427,7 +411,7 @@ export default function SyncRecorder() {
 
         };
 
-    }, [audio]);
+    }, []);
 
 
     return null;

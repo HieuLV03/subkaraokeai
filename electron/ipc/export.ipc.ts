@@ -85,8 +85,6 @@ type ExportData = {
 
     videoFile: string;
 
-    audioFile: string;
-
     width?: number;
 
     height?: number;
@@ -1111,16 +1109,6 @@ ipcMain.handle(
             }
 
 
-            if (
-                !data.audioFile
-            ) {
-
-                throw new Error(
-                    "Chưa có audio."
-                );
-
-            }
-
 
             if (
                 !data.lyrics?.length
@@ -1156,23 +1144,6 @@ ipcMain.handle(
 
                 throw new Error(
                     `Không tìm thấy video:\n${data.videoFile}`
-                );
-
-            }
-
-
-            try {
-
-                await fs.access(
-                    data.audioFile
-                );
-
-            }
-
-            catch {
-
-                throw new Error(
-                    `Không tìm thấy audio:\n${data.audioFile}`
                 );
 
             }
@@ -1402,12 +1373,6 @@ ipcMain.handle(
                 console.log(
                     "Export video:",
                     data.videoFile
-                );
-
-
-                console.log(
-                    "Export audio:",
-                    data.audioFile
                 );
 
 

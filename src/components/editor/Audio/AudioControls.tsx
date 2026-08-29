@@ -1,3 +1,4 @@
+
 import "./AudioControls.css";
 
 type Props = {
@@ -52,92 +53,90 @@ export default function AudioControls({
 
     const s = Math.floor(time % 60);
 
-    const ms = Math.floor((time % 1) * 100);
+    const ms =
+      Math.floor((time % 1) * 100);
 
     return `${m}:${String(s).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
-
   }
 
   return (
 
     <div className="audio-controls">
 
-      <button
-        onClick={() =>
-
-          playing
-            ? onPause()
-            : onPlay()
-
-        }
-      >
-        {playing ? "⏸" : "▶"}
-      </button>
+      {/* -5s */}
 
       <button
-
+        className="audio-btn"
         onClick={() =>
-
-          onSeek(currentTime - 5)
-
+          onSeek(
+            Math.max(
+              0,
+              currentTime - 5
+            )
+          )
         }
-
       >
-
         -5s
-
       </button>
 
-      <button
 
-        onClick={() =>
-
-          onSeek(currentTime + 5)
-
-        }
-
-      >
-
-        +5s
-
-      </button>
+      {/* TIME */}
 
       <div className="time">
 
         {format(currentTime)}
 
-        {" / "}
+        <span> / </span>
 
         {format(duration)}
 
       </div>
-<input
-    className="audio-progress"
-    type="range"
-    min={0}
-    max={duration || 0}
-    step={0.001}
-    value={currentTime}
-    onChange={(e)=>
-        onSeek(
-            Number(e.target.value)
-        )
-    }
-/>
-      <select
 
-        value={playbackRate}
 
-        onChange={(e) =>
+      {/* +5s */}
 
-          onRate(
-
-            Number(e.target.value)
-
+      <button
+        className="audio-btn"
+        onClick={() =>
+          onSeek(
+            Math.min(
+              duration,
+              currentTime + 5
+            )
           )
-
         }
+      >
+        +5s
+      </button>
 
+
+      {/* PROGRESS */}
+
+      <input
+        className="audio-progress"
+        type="range"
+        min={0}
+        max={duration || 0}
+        step={0.001}
+        value={currentTime}
+        onChange={(e) =>
+          onSeek(
+            Number(e.target.value)
+          )
+        }
+      />
+
+
+      {/* PLAYBACK RATE */}
+
+      <select
+        className="audio-rate"
+        value={playbackRate}
+        onChange={(e) =>
+          onRate(
+            Number(e.target.value)
+          )
+        }
       >
 
         <option value={0.5}>0.5x</option>
@@ -154,32 +153,46 @@ export default function AudioControls({
 
       </select>
 
-      <input
 
-        type="range"
+      {/* VOLUME */}
 
-        min={0}
+      <div className="volume">
 
-        max={1}
+        <span className="volume-icon">
+          🔊
+        </span>
 
-        step={0.01}
+        <input
+          className="volume-slider"
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) =>
+            onVolume(
+              Number(e.target.value)
+            )
+          }
+        />
 
-        value={volume}
+      </div>
 
-        onChange={(e) =>
 
-          onVolume(
+      {/* PLAY - CUỐI CÙNG */}
 
-            Number(e.target.value)
-
-          )
-
+      <button
+        className="play-btn"
+        onClick={() =>
+          playing
+            ? onPause()
+            : onPlay()
         }
-
-      />
+      >
+        {playing ? "⏸" : "▶"}
+      </button>
 
     </div>
 
   );
-
 }

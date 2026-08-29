@@ -1,3 +1,4 @@
+
 "use client";
 
 import "./Preview.css";
@@ -44,6 +45,36 @@ export default function Preview() {
             state => state.currentTime
         );
 
+    const setCurrentTime =
+        useEditorStore(
+            state => state.setCurrentTime
+        );
+
+    const setDuration =
+        useEditorStore(
+            state => state.setDuration
+        );
+
+    const play =
+        useEditorStore(
+            state => state.play
+        );
+
+    const pause =
+        useEditorStore(
+            state => state.pause
+        );
+
+    const playbackRate =
+        useEditorStore(
+            state => state.playbackRate
+        );
+
+    const volume =
+        useEditorStore(
+            state => state.volume
+        );
+
 
     // =========================================================
     // VIDEO REF
@@ -62,7 +93,7 @@ export default function Preview() {
     const videoName =
         videoFile
             ? videoFile
-                .split(/[/\\]/)
+                .split(/[\\/]/)
                 .pop()
             : null;
 
@@ -93,7 +124,6 @@ export default function Preview() {
         }
 
 
-        // Không có video
         if (!videoSrc) {
 
             video.pause();
@@ -104,8 +134,13 @@ export default function Preview() {
 
             video.load();
 
-            return;
+            setCurrentTime(0);
 
+            setDuration(0);
+
+            pause();
+
+            return;
         }
 
 
@@ -120,16 +155,18 @@ export default function Preview() {
 
         video.load();
 
-
     }, [
-        videoSrc
+        videoSrc,
+        setCurrentTime,
+        setDuration,
+        pause
     ]);
 
 
     // =========================================================
     // PLAY / PAUSE
     //
-    // AudioPlayer là MASTER
+    // VIDEO LÀ MASTER
     // =========================================================
 
     useEffect(() => {
@@ -137,12 +174,7 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video) {
-            return;
-        }
-
-
-        if (!videoSrc) {
+        if (!video || !videoSrc) {
             return;
         }
 
@@ -158,6 +190,8 @@ export default function Preview() {
                         error
                     );
 
+                    pause();
+
                 });
 
         }
@@ -169,15 +203,13 @@ export default function Preview() {
 
     }, [
         playing,
-        videoSrc
+        videoSrc,
+        pause
     ]);
 
 
     // =========================================================
-    // SYNC VIDEO TIME
-    //
-    // AudioPlayer cập nhật currentTime
-    // Video chạy theo currentTime
+    // PLAYBACK RATE
     // =========================================================
 
     useEffect(() => {
@@ -189,8 +221,222 @@ export default function Preview() {
             return;
         }
 
+        video.playbackRate =
+            playbackRate;
 
-        if (!videoSrc) {
+    }, [
+        playbackRate
+    ]);
+
+
+    // =========================================================
+    // VOLUME
+    // =========================================================
+
+    useEffect(() => {
+
+        const video =
+            videoRef.current;
+
+        if (!video) {
+            return;
+        }
+
+        video.volume =
+            volume;
+
+    }, [
+        volume
+    ]);
+
+
+    // =========================================================
+    // VIDEO → CURRENT TIME
+    //
+    // Dùng requestAnimationFrame
+    // để time chạy mượt như AudioPlayer cũ.
+    //
+    // VIDEO LÀ MASTER CLOCK.
+    // =========================================================
+
+    useEffect(() => {
+
+        const video =
+            videoRef.current;
+
+        if (!video || !videoSrc) {
+            return;
+        }
+
+
+        let animationFrame = 0;
+
+
+        const updateTime = () => {
+
+            if (!video.paused) {
+
+                setCurrentTime(
+                    video.currentTime
+                );
+
+            }
+
+
+            animationFrame =
+                requestAnimationFrame(
+                    updateTime
+                );
+
+        };
+
+
+        animationFrame =
+            requestAnimationFrame(
+                updateTime
+            );
+
+
+        return () => {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+        };
+
+    }, [
+        videoSrc,
+        setCurrentTime
+    ]);
+
+
+    // =========================================================
+    // VIDEO METADATA
+    // =========================================================
+
+    useEffect(() => {
+
+        const video =
+            videoRef.current;
+
+        if (!video || !videoSrc) {
+            return;
+        }
+
+
+        const handleLoadedMetadata =
+            () => {
+
+                console.log(
+                    "Preview video loaded"
+                );
+
+                console.log(
+                    "Video duration:",
+                    video.duration
+                );
+
+
+                setDuration(
+                    video.duration
+                );
+
+                video.currentTime =
+                    0;
+
+                setCurrentTime(
+                    0
+                );
+
+            };
+
+
+        video.addEventListener(
+            "loadedmetadata",
+            handleLoadedMetadata
+        );
+
+
+        return () => {
+
+            video.removeEventListener(
+                "loadedmetadata",
+                handleLoadedMetadata
+            );
+
+        };
+
+    }, [
+        videoSrc,
+        setDuration,
+        setCurrentTime
+    ]);
+
+
+    // =========================================================
+    // VIDEO ENDED
+    // =========================================================
+
+    useEffect(() => {
+
+        const video =
+            videoRef.current;
+
+        if (!video || !videoSrc) {
+            return;
+        }
+
+
+        const handleEnded =
+            () => {
+
+                setCurrentTime(
+                    video.duration || 0
+                );
+
+                pause();
+
+            };
+
+
+        video.addEventListener(
+            "ended",
+            handleEnded
+        );
+
+
+        return () => {
+
+            video.removeEventListener(
+                "ended",
+                handleEnded
+            );
+
+        };
+
+    }, [
+        videoSrc,
+        setCurrentTime,
+        pause
+    ]);
+
+
+    // =========================================================
+    // STORE CURRENT TIME → VIDEO
+    //
+    // Dùng cho:
+    // -5s
+    // +5s
+    // kéo timeline
+    // =========================================================
+
+    useEffect(() => {
+
+        const video =
+            videoRef.current;
+
+        if (!video || !videoSrc) {
             return;
         }
 
@@ -211,7 +457,12 @@ export default function Preview() {
             );
 
 
-        // Chỉ seek khi lệch đáng kể
+        // Khi người dùng seek,
+        // currentTime thay đổi đáng kể.
+        //
+        // Không seek liên tục trong lúc video
+        // đang chạy vì video đã là MASTER.
+
         if (
             difference > 0.15
         ) {
@@ -223,83 +474,15 @@ export default function Preview() {
 
             }
             catch {
+
                 // Video chưa ready
+
             }
 
         }
 
     }, [
         currentTime,
-        videoSrc
-    ]);
-
-
-    // =========================================================
-    // VIDEO EVENTS
-    // =========================================================
-
-    useEffect(() => {
-
-        const video =
-            videoRef.current;
-
-        if (!video) {
-            return;
-        }
-
-
-        const handleLoadedMetadata =
-            () => {
-
-                console.log(
-                    "Preview video loaded"
-                );
-
-                console.log(
-                    "Video duration:",
-                    video.duration
-                );
-
-            };
-
-
-        const handleError =
-            () => {
-
-                console.error(
-                    "Preview video error:",
-                    video.error
-                );
-
-            };
-
-
-        video.addEventListener(
-            "loadedmetadata",
-            handleLoadedMetadata
-        );
-
-        video.addEventListener(
-            "error",
-            handleError
-        );
-
-
-        return () => {
-
-            video.removeEventListener(
-                "loadedmetadata",
-                handleLoadedMetadata
-            );
-
-            video.removeEventListener(
-                "error",
-                handleError
-            );
-
-        };
-
-    }, [
         videoSrc
     ]);
 
@@ -318,7 +501,10 @@ export default function Preview() {
 
 
                     {/* =================================================
-                        VIDEO BACKGROUND
+                        VIDEO
+
+                        Video chứa luôn audio.
+                        Video là MASTER.
                     ================================================= */}
 
                     {videoSrc && (
@@ -331,16 +517,6 @@ export default function Preview() {
                             playsInline
 
                             preload="auto"
-
-                            /*
-                             * KHÔNG autoPlay
-                             *
-                             * KHÔNG muted
-                             *
-                             * Nhưng AudioPlayer vẫn là nguồn âm thanh
-                             * chính của project.
-                             */
-
                         />
 
                     )}

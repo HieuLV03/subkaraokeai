@@ -77,14 +77,8 @@ export default function ExportPage() {
 
 
     // =========================================================
-    // AUDIO
     // =========================================================
 
-    const audioRef =
-        useEditorStore(
-            state =>
-                state.audioRef
-        );
 
 const setWorkspace =
     useEditorStore(
@@ -119,20 +113,16 @@ const [authChecking, setAuthChecking] =
     // DURATION
     // =========================================================
 
-    const duration =
-        audioRef?.duration ?? 0;
-
-
+ const duration =
+    useEditorStore(
+        state => state.duration
+    );
     // =========================================================
     // FILES
     // =========================================================
 
     const videoFile =
         project?.videoFile;
-
-
-    const audioFile =
-        project?.audioFile;
 
 
     // =========================================================
@@ -254,8 +244,6 @@ useEffect(() => {
         duration > 0 &&
 
         !!videoFile &&
-
-        !!audioFile &&
 
         !exporting;
 
@@ -465,7 +453,6 @@ async function handleExport() {
                     currentSession.user.email,
 
                 videoFile,
-                audioFile,
                 duration,
 
                 lyrics:
@@ -478,7 +465,6 @@ async function handleExport() {
                 "export:video",
                 {
                     videoFile: videoFile!,
-                    audioFile: audioFile!,
                     lyrics,
                     duration,
 
@@ -565,7 +551,7 @@ return (
 
                 <p>
                     Xuất video karaoke hoàn chỉnh
-                    với video nền, audio và lyrics.
+                    với video nền, và lyrics.
                 </p>
 
             </div>
@@ -607,32 +593,25 @@ return (
 
 
                 {/* AUDIO */}
+<div
+    style={{
+        marginTop: 16,
+    }}
+>
+    <strong>
+        Audio
+    </strong>
 
-                <div
-                    style={{
-                        marginTop: 16,
-                    }}
-                >
-                    <strong>
-                        Audio / Vocal
-                    </strong>
-
-                    <div
-                        style={{
-                            marginTop: 4,
-                            wordBreak: "break-all",
-                            color: audioFile
-                                ? "#94a3b8"
-                                : "#ef4444",
-                            fontSize: 13,
-                        }}
-                    >
-                        {audioFile
-                            ? audioFile
-                            : "❌ Chưa chọn audio"}
-                    </div>
-                </div>
-
+    <div
+        style={{
+            marginTop: 4,
+            color: "#94a3b8",
+            fontSize: 13,
+        }}
+    >
+        Sử dụng audio có sẵn trong video nền
+    </div>
+</div>
 
                 {/* FORMAT */}
 
@@ -747,9 +726,9 @@ return (
                             fontSize: 13,
                         }}
                     >
-                        {duration > 0
-                            ? `${duration.toFixed(2)} seconds`
-                            : "Chưa có audio"}
+                    {duration > 0
+    ? `${duration.toFixed(2)} seconds`
+    : "Chưa có video"}
                     </div>
                 </div>
 
@@ -763,12 +742,6 @@ return (
             {!videoFile && (
                 <div className="export-message">
                     ⚠️ Bạn chưa import video nền.
-                </div>
-            )}
-
-            {!audioFile && (
-                <div className="export-message">
-                    ⚠️ Bạn chưa import audio / vocal.
                 </div>
             )}
 

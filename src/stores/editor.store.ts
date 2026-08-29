@@ -10,7 +10,7 @@ type EditorState = {
 
     audioRef: HTMLAudioElement | null;
 
-
+videoRef: HTMLVideoElement | null;
     currentTime: number;
 
     duration: number;
@@ -64,7 +64,9 @@ goBackWorkspace: () => void;
         audio: HTMLAudioElement | null
     ) => void;
 
-
+setVideoRef: (
+    video: HTMLVideoElement | null
+) => void;
     setCurrentTime:
     (
         time:number
@@ -179,7 +181,7 @@ create<EditorState>((set,get)=>(
 
 
     audioRef:null,
-
+videoRef: null,
 
     currentTime:0,
 
@@ -226,7 +228,9 @@ workspaceHistory: [],
     }),
 
 
-
+setVideoRef: (video) => set({
+    videoRef: video
+}),
 
     setCurrentTime:(time)=>set({
 
