@@ -52,10 +52,17 @@ out/
 
 python/.venv/
 python/venv/
+runtime/python/venv/
+
 python/__pycache__/
 python/**/*.pyc
 python/**/*.pyo
 python/**/*.pyd
+
+runtime/python/**/__pycache__/
+runtime/python/**/*.pyc
+runtime/python/**/*.pyo
+runtime/python/**/*.pyd
 
 # ==========================
 # WhisperX Cache
