@@ -3,7 +3,7 @@ import {
   BrowserWindow,
   ipcMain
 } from "electron";
-
+import "dotenv/config";
 import {
   ensureRuntimeInstalled
 } from "./ai-manager";
@@ -13,7 +13,9 @@ import {
 } from "electron-updater";
 
 import log from "electron-log";
-
+import {
+  registerImageIPC
+} from "./ipc/image.ipc";
 import {
   registerAudioIPC
 } from "./ipc/audio.ipc";
@@ -689,6 +691,7 @@ app.whenReady()
     // =====================================================
     // IPC
     // =====================================================
+registerImageIPC();
 
     registerAudioIPC();
 

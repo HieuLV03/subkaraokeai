@@ -380,12 +380,16 @@ useEffect(() => {
 async function handleExport() {
 
     // ============================================
-    // CHECK AUTH
+    // CHECK / REFRESH AUTH SESSION
     // ============================================
 
     let currentSession = session;
 
-    if (!currentSession) {
+    try {
+
+        console.log(
+            "[EXPORT AUTH] Checking current session..."
+        );
 
         const {
             data,
@@ -395,8 +399,28 @@ async function handleExport() {
         if (error) {
 
             console.error(
-                "[EXPORT] Auth check failed:",
+                "[EXPORT AUTH] getSession error:",
                 error
+            );
+
+            throw new Error(
+                "Không thể kiểm tra phiên đăng nhập."
+            );
+
+        }
+
+        currentSession =
+            data.session ?? null;
+
+
+        // ============================================
+        // NO SESSION
+        // ============================================
+
+        if (!currentSession) {
+
+            console.warn(
+                "[EXPORT AUTH] No active session."
             );
 
             navigate("/profile", {
@@ -406,42 +430,154 @@ async function handleExport() {
             });
 
             return;
+
         }
 
-        currentSession =
-            data.session ?? null;
-    }
 
-    // ============================================
-    // NOT LOGIN
-    // ============================================
+        // ============================================
+        // CHECK TOKEN EXPIRATION
+        // ============================================
 
-    if (!currentSession) {
+        const expiresAt =
+            currentSession.expires_at ?? 0;
 
-        navigate("/profile", {
-            state: {
-                returnWorkspace: "export",
-            },
-        });
+        const now =
+            Math.floor(
+                Date.now() / 1000
+            );
 
-        return;
-    }
+        const remaining =
+            expiresAt - now;
 
-    // ============================================
-    // START EXPORT
-    // ============================================
 
-    setExporting(true);
+        console.log(
+            "[EXPORT AUTH] Token:",
+            {
+                userId:
+                    currentSession.user.id,
 
-    setProgress(0);
+                email:
+                    currentSession.user.email,
 
-    setMessage(
-        "Đang chuẩn bị export..."
-    );
+                expiresAt,
 
-    setOutputPath("");
+                now,
 
-    try {
+                remainingSeconds:
+                    remaining,
+            }
+        );
+
+
+        // ============================================
+        // REFRESH IF TOKEN EXPIRES SOON
+        //
+        // Refresh trước 60 giây để tránh token
+        // hết hạn ngay trong lúc export.
+        // ============================================
+
+        if (remaining < 60) {
+
+            console.log(
+                "[EXPORT AUTH] Token expired/expiring soon. Refreshing..."
+            );
+
+
+            const {
+                data: refreshData,
+                error: refreshError,
+            } =
+                await supabase.auth.refreshSession();
+
+
+            if (refreshError) {
+
+                console.error(
+                    "[EXPORT AUTH] Refresh failed:",
+                    refreshError
+                );
+
+                navigate("/profile", {
+                    state: {
+                        returnWorkspace: "export",
+                    },
+                });
+
+                return;
+
+            }
+
+
+            if (!refreshData.session) {
+
+                console.error(
+                    "[EXPORT AUTH] Refresh returned no session."
+                );
+
+                navigate("/profile", {
+                    state: {
+                        returnWorkspace: "export",
+                    },
+                });
+
+                return;
+
+            }
+
+
+            currentSession =
+                refreshData.session;
+
+
+            console.log(
+                "[EXPORT AUTH] Session refreshed successfully.",
+                {
+                    userId:
+                        currentSession.user.id,
+
+                    expiresAt:
+                        currentSession.expires_at,
+                }
+            );
+
+
+            // Đồng bộ React state
+            setSession(
+                currentSession
+            );
+
+        }
+
+
+        // ============================================
+        // FINAL TOKEN CHECK
+        // ============================================
+
+        if (
+            !currentSession.access_token
+        ) {
+
+            throw new Error(
+                "Không tìm thấy access token."
+            );
+
+        }
+
+
+        // ============================================
+        // START EXPORT
+        // ============================================
+
+        setExporting(true);
+
+        setProgress(0);
+
+        setMessage(
+            "Đang chuẩn bị export..."
+        );
+
+        setOutputPath("");
+
 
         console.log(
             "[EXPORT PROJECT]",
@@ -453,31 +589,57 @@ async function handleExport() {
                     currentSession.user.email,
 
                 videoFile,
+
                 duration,
 
                 lyrics:
                     lyrics.length,
+
+                tokenLength:
+                    currentSession.access_token.length,
             }
         );
+
+
+        // ============================================
+        // IPC EXPORT
+        // ============================================
 
         const result =
             await window.electronAPI.invoke<ExportResult>(
                 "export:video",
                 {
-                    videoFile: videoFile!,
+                    videoFile:
+                        videoFile!,
+
                     lyrics,
+
                     duration,
 
-                    width: 1920,
-                    height: 1080,
-                    fps: 30,
+                    width:
+                        1920,
 
+                    height:
+                        1080,
+
+                    fps:
+                        30,
+
+                    // QUAN TRỌNG:
+                    // truyền token mới nhất
                     accessToken:
                         currentSession.access_token,
                 }
             );
 
-        if (result?.canceled) {
+
+        // ============================================
+        // CANCEL
+        // ============================================
+
+        if (
+            result?.canceled
+        ) {
 
             setProgress(0);
 
@@ -486,9 +648,17 @@ async function handleExport() {
             );
 
             return;
+
         }
 
-        if (result?.outputPath) {
+
+        // ============================================
+        // SUCCESS
+        // ============================================
+
+        if (
+            result?.outputPath
+        ) {
 
             setOutputPath(
                 result.outputPath
@@ -501,33 +671,55 @@ async function handleExport() {
             );
 
             return;
+
         }
+
 
         throw new Error(
             "Export không trả về outputPath."
         );
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
-            "EXPORT ERROR:",
+            "[EXPORT ERROR]",
             error
         );
 
+
         setProgress(0);
 
-        setMessage(
-            error instanceof Error
-                ? error.message
-                : "Export thất bại."
-        );
 
-    } finally {
+        if (
+            error instanceof Error
+        ) {
+
+            setMessage(
+                error.message
+            );
+
+        }
+
+        else {
+
+            setMessage(
+                "Export thất bại."
+            );
+
+        }
+
+    }
+
+    finally {
 
         setExporting(false);
 
     }
+
 }
+
 
     // =========================================================
     // UI

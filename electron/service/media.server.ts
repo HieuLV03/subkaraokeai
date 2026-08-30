@@ -1,3 +1,4 @@
+
 import express from "express";
 
 import {
@@ -19,7 +20,6 @@ export function startMediaServer(
 ) {
 
   return new Promise<number>((resolve) => {
-
 
     const expressApp =
       express();
@@ -45,13 +45,24 @@ export function startMediaServer(
 
 
     // =========================================================
-    // VIDEO BACKGROUND
+    // VIDEO
     // =========================================================
 
     const videosPath =
       path.join(
         userData,
         "import_videos"
+      );
+
+
+    // =========================================================
+    // IMAGE
+    // =========================================================
+
+    const imagesPath =
+      path.join(
+        userData,
+        "import_images"
       );
 
 
@@ -74,6 +85,12 @@ export function startMediaServer(
     console.log(
       "[Media Server] VIDEOS PATH:",
       videosPath
+    );
+
+
+    console.log(
+      "[Media Server] IMAGES PATH:",
+      imagesPath
     );
 
 
@@ -106,6 +123,20 @@ export function startMediaServer(
 
 
     // =========================================================
+    // IMAGE
+    //
+    // http://127.0.0.1:38555/import_images/xxx.jpg
+    // =========================================================
+
+    expressApp.use(
+      "/import_images",
+      express.static(
+        imagesPath
+      )
+    );
+
+
+    // =========================================================
     // SERVER
     // =========================================================
 
@@ -119,7 +150,6 @@ export function startMediaServer(
       38555,
       "127.0.0.1",
       () => {
-
 
         console.log(
           "[Media Server] Running:"
@@ -143,13 +173,18 @@ export function startMediaServer(
         );
 
 
+        console.log(
+          "Image:",
+          "http://127.0.0.1:38555/import_images/"
+        );
+
+
         resolve(
           38555
         );
 
       }
     );
-
 
   });
 

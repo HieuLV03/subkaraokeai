@@ -22,7 +22,7 @@ import {
 export default function Preview() {
 
     // =========================================================
-    // VIDEO FILE
+    // PROJECT FILES
     // =========================================================
 
     const videoFile =
@@ -30,6 +30,12 @@ export default function Preview() {
             state => state.project?.videoFile
         );
 
+    const imageFile =
+        useProjectStore(
+            state => state.project?.imageFile
+        );
+const isImageMode =
+    Boolean(imageFile);
 
     // =========================================================
     // EDITOR STATE
@@ -78,6 +84,9 @@ export default function Preview() {
 
     // =========================================================
     // VIDEO REF
+    //
+    // Video chỉ dùng làm AUDIO + MASTER CLOCK
+    // Không dùng hình ảnh video làm background.
     // =========================================================
 
     const videoRef =
@@ -99,6 +108,18 @@ export default function Preview() {
 
 
     // =========================================================
+    // IMAGE NAME
+    // =========================================================
+
+    const imageName =
+        imageFile
+            ? imageFile
+                .split(/[\\/]/)
+                .pop()
+            : null;
+
+
+    // =========================================================
     // VIDEO URL
     // =========================================================
 
@@ -111,7 +132,61 @@ export default function Preview() {
 
 
     // =========================================================
+    // IMAGE URL
+    // =========================================================
+
+    const imageSrc =
+        imageName
+            ? `http://127.0.0.1:38555/import_images/${encodeURIComponent(
+                imageName
+            )}`
+            : null;
+
+
+    // =========================================================
+    // DEBUG
+    // =========================================================
+
+    useEffect(() => {
+
+        console.log(
+            "[Preview] Timing Video:",
+            videoFile
+        );
+
+        console.log(
+            "[Preview] Background Image:",
+            imageFile
+        );
+
+        console.log(
+            "[Preview] Video URL:",
+            videoSrc
+        );
+
+        console.log(
+            "[Preview] Image URL:",
+            imageSrc
+        );
+
+    }, [
+        videoFile,
+        imageFile,
+        videoSrc,
+        imageSrc
+    ]);
+
+
+    // =========================================================
     // LOAD VIDEO
+    //
+    // Video vẫn được load để:
+    //
+    // - phát audio
+    // - lấy duration
+    // - làm master clock
+    //
+    // Nhưng KHÔNG hiển thị hình ảnh.
     // =========================================================
 
     useEffect(() => {
@@ -141,11 +216,12 @@ export default function Preview() {
             pause();
 
             return;
+
         }
 
 
         console.log(
-            "Loading preview video:",
+            "[Preview] Loading timing video:",
             videoSrc
         );
 
@@ -166,7 +242,7 @@ export default function Preview() {
     // =========================================================
     // PLAY / PAUSE
     //
-    // VIDEO LÀ MASTER
+    // VIDEO = MASTER
     // =========================================================
 
     useEffect(() => {
@@ -174,7 +250,10 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video || !videoSrc) {
+        if (
+            !video ||
+            !videoSrc
+        ) {
             return;
         }
 
@@ -186,7 +265,7 @@ export default function Preview() {
                 .catch(error => {
 
                     console.error(
-                        "Preview video play error:",
+                        "[Preview] Video play error:",
                         error
                     );
 
@@ -195,6 +274,7 @@ export default function Preview() {
                 });
 
         }
+
         else {
 
             video.pause();
@@ -253,10 +333,7 @@ export default function Preview() {
     // =========================================================
     // VIDEO → CURRENT TIME
     //
-    // Dùng requestAnimationFrame
-    // để time chạy mượt như AudioPlayer cũ.
-    //
-    // VIDEO LÀ MASTER CLOCK.
+    // VIDEO LÀ MASTER CLOCK
     // =========================================================
 
     useEffect(() => {
@@ -264,7 +341,10 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video || !videoSrc) {
+        if (
+            !video ||
+            !videoSrc
+        ) {
             return;
         }
 
@@ -320,7 +400,10 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video || !videoSrc) {
+        if (
+            !video ||
+            !videoSrc
+        ) {
             return;
         }
 
@@ -329,11 +412,11 @@ export default function Preview() {
             () => {
 
                 console.log(
-                    "Preview video loaded"
+                    "[Preview] Timing video loaded"
                 );
 
                 console.log(
-                    "Video duration:",
+                    "[Preview] Duration:",
                     video.duration
                 );
 
@@ -342,8 +425,10 @@ export default function Preview() {
                     video.duration
                 );
 
+
                 video.currentTime =
                     0;
+
 
                 setCurrentTime(
                     0
@@ -383,7 +468,10 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video || !videoSrc) {
+        if (
+            !video ||
+            !videoSrc
+        ) {
             return;
         }
 
@@ -426,9 +514,11 @@ export default function Preview() {
     // STORE CURRENT TIME → VIDEO
     //
     // Dùng cho:
-    // -5s
-    // +5s
-    // kéo timeline
+    //
+    // - timeline
+    // - -5s
+    // - +5s
+    // - seek
     // =========================================================
 
     useEffect(() => {
@@ -436,7 +526,10 @@ export default function Preview() {
         const video =
             videoRef.current;
 
-        if (!video || !videoSrc) {
+        if (
+            !video ||
+            !videoSrc
+        ) {
             return;
         }
 
@@ -457,12 +550,6 @@ export default function Preview() {
             );
 
 
-        // Khi người dùng seek,
-        // currentTime thay đổi đáng kể.
-        //
-        // Không seek liên tục trong lúc video
-        // đang chạy vì video đã là MASTER.
-
         if (
             difference > 0.15
         ) {
@@ -473,6 +560,7 @@ export default function Preview() {
                     currentTime;
 
             }
+
             catch {
 
                 // Video chưa ready
@@ -487,76 +575,104 @@ export default function Preview() {
     ]);
 
 
-    // =========================================================
-    // RENDER
-    // =========================================================
+  
+// =========================================================
+// RENDER
+// =========================================================
 
-    return (
+return (
 
-        <div className="preview">
+    <div className="preview">
 
-            <div className="youtube-frame">
+        <div className="youtube-frame">
 
-                <div className="video-area">
-
-
-                    {/* =================================================
-                        VIDEO
-
-                        Video chứa luôn audio.
-                        Video là MASTER.
-                    ================================================= */}
-
-                    {videoSrc && (
-
-                        <video
-                            ref={videoRef}
-
-                            className="preview-video"
-
-                            playsInline
-
-                            preload="auto"
-                        />
-
-                    )}
+            <div className="video-area">
 
 
-                    {/* =================================================
-                        KARAOKE LYRICS
-                    ================================================= */}
+                {/* =================================================
+                    IMAGE MODE
 
-                    <div className="karaoke-overlay">
+                    Có imageFile:
+                    - Image = background
+                    - Video = audio + timing
+                ================================================= */}
 
-                        <KaraokeCanvas />
+                {isImageMode && imageSrc && (
+
+                    <img
+                        src={imageSrc}
+                        className="preview-background"
+                        alt="Karaoke background"
+                        draggable={false}
+                    />
+
+                )}
+
+
+                {/* =================================================
+                    VIDEO
+
+                    VIDEO MODE:
+                    → Hiển thị video
+
+                    IMAGE MODE:
+                    → Ẩn video, chỉ dùng audio + timing
+                ================================================= */}
+
+                {videoSrc && (
+
+                    <video
+                        ref={videoRef}
+
+                        className={
+                            isImageMode
+                                ? "preview-timing-video"
+                                : "preview-video"
+                        }
+
+                        playsInline
+                        preload="auto"
+                    />
+
+                )}
+
+
+                {/* =================================================
+                    KARAOKE
+                ================================================= */}
+
+                <div className="karaoke-overlay">
+
+                    <KaraokeCanvas />
+
+                </div>
+
+
+                {/* =================================================
+                    EMPTY
+                ================================================= */}
+
+                {!videoSrc && !imageSrc && (
+
+                    <div className="preview-empty">
+
+                        🎬
+
+                        <div>
+                            Import Video or Background Image
+                        </div>
 
                     </div>
 
-
-                    {/* =================================================
-                        NO VIDEO
-                    ================================================= */}
-
-                    {!videoSrc && (
-
-                        <div className="preview-empty">
-
-                            🎬
-
-                            <div>
-                                Import Video Background
-                            </div>
-
-                        </div>
-
-                    )}
-
-                </div>
+                )}
 
             </div>
 
         </div>
 
-    );
+    </div>
+
+);
+
 
 }

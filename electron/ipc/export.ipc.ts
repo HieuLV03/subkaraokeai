@@ -2,6 +2,7 @@ import {
     app,
     dialog,
     ipcMain,
+    BrowserWindow,
 } from "electron";
 
 import fs from "node:fs/promises";
@@ -26,6 +27,9 @@ type LyricWord = {
     end: number;
 
     synced?: boolean;
+
+    // Width được đo bằng Chromium Canvas
+    measuredWidth?: number;
 
 };
 
@@ -90,6 +94,7 @@ type ExportData = {
     height?: number;
 
     fps?: number;
+
     accessToken?: string;
 
 };
@@ -103,13 +108,23 @@ const CANVAS_WIDTH = 1920;
 
 const CANVAS_HEIGHT = 1080;
 
+// Preview của bạn là 640x360.
+// Export là 1920x1080.
 const PREVIEW_SCALE = 3;
 
-const PREVIEW_WORD_GAP = 8;
 
-const EXPORT_WORD_GAP =
-    PREVIEW_WORD_GAP *
-    PREVIEW_SCALE;
+// ============================================================
+// WORD GAP
+//
+// KHÔNG ĐO SPACE.
+// Mỗi word cách nhau bằng GAP cố định.
+//
+// Nếu Preview CSS của bạn đang dùng gap: 12px
+// thì để 12 ở đây.
+//
+// ============================================================
+
+const WORD_GAP = 12;
 
 
 // ============================================================
@@ -120,7 +135,7 @@ function escapeXml(
     value: string
 ) {
 
-    return value
+    return String(value ?? "")
 
         .replace(
             /&/g,
@@ -163,6 +178,27 @@ function clamp(
             value
         )
     );
+
+}
+
+
+// ============================================================
+// SAFE SVG ID
+// ============================================================
+
+function makeSvgId(
+    value: string,
+    fallback: string
+) {
+
+    const safe =
+        String(value ?? "")
+            .replace(
+                /[^a-zA-Z0-9_-]/g,
+                ""
+            );
+
+    return safe || fallback;
 
 }
 
@@ -215,6 +251,10 @@ function getDefaultStyle(): LyricStyle {
 
 // ============================================================
 // WORD PERCENT
+//
+// START / END = TIMING
+//
+// Width chữ KHÔNG liên quan đến timing.
 // ============================================================
 
 function getWordPercent(
@@ -226,13 +266,12 @@ function getWordPercent(
 ) {
 
     if (
-
-        word.start == null ||
-
-        word.end == null ||
-
-        word.end <= word.start
-
+        !Number.isFinite(
+            word.start
+        ) ||
+        !Number.isFinite(
+            word.end
+        )
     ) {
 
         return 0;
@@ -241,7 +280,18 @@ function getWordPercent(
 
 
     if (
-        currentTime < word.start
+        word.end <= word.start
+    ) {
+
+        return currentTime >= word.end
+            ? 100
+            : 0;
+
+    }
+
+
+    if (
+        currentTime <= word.start
     ) {
 
         return 0;
@@ -258,317 +308,92 @@ function getWordPercent(
     }
 
 
-    return clamp(
-
+    const percent =
         (
-            currentTime -
-            word.start
-        )
-        /
-        (
-            word.end -
-            word.start
+            (
+                currentTime -
+                word.start
+            )
+            /
+            (
+                word.end -
+                word.start
+            )
         )
         *
-        100,
+        100;
 
+
+    return clamp(
+        percent,
         0,
-
         100
-
     );
 
 }
 
 
 // ============================================================
-// TEXT WIDTH
+// BUILD TEXT STYLE
 // ============================================================
 
-function getCharWidthRatio(
-    char: string
-) {
+function buildTextStyle(
 
-    if (
-        char === " " ||
-        char === "\u00A0"
-    ) {
-
-        return 0.28;
-
-    }
-
-
-    if (
-        "ilIjtfr".includes(char)
-    ) {
-
-        return 0.30;
-
-    }
-
-
-    if (
-        "mwMW".includes(char)
-    ) {
-
-        return 0.85;
-
-    }
-
-
-    if (
-        "ABCDEFGHKNOPQRSTUVXYZ".includes(char)
-    ) {
-
-        return 0.68;
-
-    }
-
-
-    if (
-        "0123456789".includes(char)
-    ) {
-
-        return 0.56;
-
-    }
-
-
-    return 0.55;
-
-}
-
-
-function getWordWidth(
-    word: string,
-    fontSize: number
-) {
-
-    const text =
-        `${word}\u00A0`;
-
-    let width = 0;
-
-
-    for (
-        const char of text
-    ) {
-
-        width +=
-            getCharWidthRatio(
-                char
-            ) *
-            fontSize;
-
-    }
-
-
-    return Math.max(
-        width,
-        fontSize * 0.3
-    );
-
-}
-
-
-function getLineWidth(
-    words: LyricWord[],
-    fontSize: number
-) {
-
-    let width = 0;
-
-
-    for (
-        let i = 0;
-        i < words.length;
-        i++
-    ) {
-
-        width +=
-            getWordWidth(
-                words[i].word ?? "",
-                fontSize
-            );
-
-
-        if (
-            i <
-            words.length - 1
-        ) {
-
-            width +=
-                EXPORT_WORD_GAP;
-
-        }
-
-    }
-
-
-    return Math.max(
-        width,
-        fontSize
-    );
-
-}
-
-
-// ============================================================
-// BUILD WORD SVG
-// ============================================================
-
-function buildWordSvg(
-
-    word: LyricWord,
-
-    style: LyricStyle,
-
-    currentTime: number,
-
-    x: number,
-
-    fontSize: number
+    style: LyricStyle
 
 ) {
 
-    const text =
-        word.word ?? "";
-
-
-    const safeText =
-        escapeXml(text);
-
-
-    const percent =
-        getWordPercent(
-            word,
-            currentTime
-        );
-
-
-    const normalColor =
-        style.color ??
-        "#ffffff";
-
-
-    const activeColor =
-        style.activeColor ??
-        "#00ff66";
-
-
-    const outline =
-        style.outline ??
-        "#000000";
-
-
-    const outlineWidth =
-        (style.outlineWidth ?? 0) *
+    const fontSize =
+        (
+            style.fontSize ??
+            40
+        )
+        *
         PREVIEW_SCALE;
 
 
-    const shadow =
-        style.shadow ??
-        false;
-
-
-    const wordWidth =
-        getWordWidth(
-            text,
-            fontSize
-        );
+    const outlineWidth =
+        (
+            style.outlineWidth ??
+            0
+        )
+        *
+        PREVIEW_SCALE;
 
 
     const stroke =
         outlineWidth > 0
 
             ? `
-                stroke="${escapeXml(
-                    outline
-                )}"
-                stroke-width="${outlineWidth}"
-                paint-order="stroke fill"
-            `
+stroke="${escapeXml(
+    style.outline ??
+    "#000000"
+)}"
+stroke-width="${outlineWidth}"
+stroke-linejoin="round"
+paint-order="stroke fill"
+`
 
             : "";
 
 
     const filter =
-        shadow
+        style.shadow
 
             ? `filter="url(#shadow)"`
 
             : "";
 
 
-    const normal = `
-<text
-    x="${x}"
-    y="0"
-    dominant-baseline="middle"
-    font-family="${escapeXml(
-        style.fontFamily ?? "Arial"
-    )}"
-    font-size="${fontSize}px"
-    font-weight="700"
-    fill="${escapeXml(normalColor)}"
-    ${stroke}
-    ${filter}
->${safeText}&#160;</text>
-`;
-
-
-    const fillWidth =
-        wordWidth *
-        (
-            percent /
-            100
-        );
-
-
-    const clipId =
-        `clip-${word.id.replace(
-            /[^a-zA-Z0-9_-]/g,
-            ""
-        )}`;
-
-
-    const active = `
-<clipPath id="${clipId}">
-    <rect
-        x="${x}"
-        y="${-fontSize}"
-        width="${fillWidth}"
-        height="${fontSize * 2}"
-    />
-</clipPath>
-
-<text
-    x="${x}"
-    y="0"
-    dominant-baseline="middle"
-    font-family="${escapeXml(
-        style.fontFamily ?? "Arial"
-    )}"
-    font-size="${fontSize}px"
-    font-weight="700"
-    fill="${escapeXml(activeColor)}"
-    ${stroke}
-    ${filter}
-    clip-path="url(#${clipId})"
->${safeText}&#160;</text>
-`;
-
-
     return {
 
-        svg:
-            normal +
-            active,
+        fontSize,
 
-        width:
-            wordWidth +
-            EXPORT_WORD_GAP,
+        outlineWidth,
+
+        stroke,
+
+        filter,
 
     };
 
@@ -576,7 +401,326 @@ function buildWordSvg(
 
 
 // ============================================================
+// CHROMIUM TEXT MEASURER
+//
+// Đây là CÁCH B.
+//
+// Electron tạo một BrowserWindow ẩn.
+// BrowserWindow = Chromium.
+// CanvasRenderingContext2D.measureText()
+// = font measurement thật.
+//
+// Không dùng:
+// - fontSize * 0.58
+// - fontSize * 0.9
+// - estimateCharWidth
+// - đo ký tự thủ công
+//
+// ============================================================
+
+let measureWindow:
+    BrowserWindow | null = null;
+
+
+async function getMeasureWindow() {
+
+    if (
+        measureWindow &&
+        !measureWindow.isDestroyed()
+    ) {
+
+        return measureWindow;
+
+    }
+
+
+    measureWindow =
+        new BrowserWindow({
+
+            show: false,
+
+            width: 300,
+
+            height: 200,
+
+            webPreferences: {
+
+                sandbox:
+                    false,
+
+            },
+
+        });
+
+
+    await measureWindow.loadURL(
+        "data:text/html,<html><body></body></html>"
+    );
+
+
+    return measureWindow;
+
+}
+
+
+// ============================================================
+// MEASURE TEXT WITH CHROMIUM
+// ============================================================
+
+async function measureTextWithChromium(
+
+    text: string,
+
+    fontFamily: string,
+
+    fontSize: number,
+
+    fontWeight: number
+
+) {
+
+    const window =
+        await getMeasureWindow();
+
+
+    const result =
+        await window.webContents.executeJavaScript(
+
+            `(() => {
+
+                const canvas =
+                    document.createElement("canvas");
+
+                const ctx =
+                    canvas.getContext("2d");
+
+                if (!ctx) {
+                    return 0;
+                }
+
+                ctx.font =
+                    ${JSON.stringify(
+                        `${fontWeight} ${fontSize}px "${fontFamily}"`
+                    )};
+
+                const metrics =
+                    ctx.measureText(
+                        ${JSON.stringify(text)}
+                    );
+
+                return metrics.width;
+
+            })()`
+
+        );
+
+
+    if (
+        !Number.isFinite(
+            result
+        )
+    ) {
+
+        return 0;
+
+    }
+
+
+    return Number(
+        result
+    );
+
+}
+
+
+// ============================================================
+// MEASURE ALL WORDS
+//
+// Chỉ đo mỗi word một lần.
+// Không đo lại ở từng frame.
+//
+// ============================================================
+
+async function prepareMeasuredLyrics(
+
+    lyrics: LyricLine[]
+
+) {
+
+    const cache =
+        new Map<string, number>();
+
+
+    for (
+        const line of lyrics
+    ) {
+
+        const style: LyricStyle = {
+
+            ...getDefaultStyle(),
+
+            ...(line.style ?? {}),
+
+        };
+
+
+        const fontFamily =
+            style.fontFamily ??
+            "Arial";
+
+
+        const fontSize =
+            style.fontSize ??
+            40;
+
+
+        const fontWeight =
+            700;
+
+
+        for (
+            const word of line.words ?? []
+        ) {
+
+            const text =
+                word.word ?? "";
+
+
+            const cacheKey =
+                JSON.stringify({
+
+                    text,
+
+                    fontFamily,
+
+                    fontSize,
+
+                    fontWeight,
+
+                });
+
+
+            if (
+                cache.has(
+                    cacheKey
+                )
+            ) {
+
+                word.measuredWidth =
+                    cache.get(
+                        cacheKey
+                    ) ?? 0;
+
+                continue;
+
+            }
+
+
+            const measuredWidth =
+                await measureTextWithChromium(
+
+                    text,
+
+                    fontFamily,
+
+                    fontSize,
+
+                    fontWeight
+
+                );
+
+
+            cache.set(
+                cacheKey,
+                measuredWidth
+            );
+
+
+            word.measuredWidth =
+                measuredWidth;
+
+
+            console.log(
+                "[MEASURE]",
+
+                JSON.stringify(
+                    text
+                ),
+
+                "font:",
+                fontFamily,
+
+                fontSize,
+
+                "width:",
+                measuredWidth
+            );
+
+        }
+
+    }
+
+
+    return lyrics;
+
+}
+
+
+// ============================================================
+// GET WORD WIDTH
+//
+// measuredWidth là px của Preview.
+//
+// Export nhân PREVIEW_SCALE.
+// ============================================================
+
+function getWordWidth(
+
+    word: LyricWord,
+
+    scale: number
+
+) {
+
+    const measured =
+        Number(
+            word.measuredWidth ?? 0
+        );
+
+
+    if (
+        measured <= 0
+    ) {
+
+        return 0;
+
+    }
+
+
+    return (
+        measured *
+        PREVIEW_SCALE *
+        scale
+    );
+
+}
+
+
+// ============================================================
 // BUILD SVG FRAME
+//
+// KHÔNG còn <tspan> tự layout.
+//
+// Từng word có vị trí X riêng.
+//
+// Vị trí dựa trên:
+//     measuredWidth
+//     WORD_GAP
+//
+// Timing dựa trên:
+//     start
+//     end
+//
 // ============================================================
 
 function buildSvgFrame(
@@ -603,8 +747,17 @@ function buildSvgFrame(
         );
 
 
-    let content = "";
+    let content =
+        "";
 
+
+    let defs =
+        "";
+
+
+    // ========================================================
+    // LINES
+    // ========================================================
 
     for (
         const line of activeLines
@@ -632,116 +785,392 @@ function buildSvgFrame(
         }
 
 
-        const fontSize =
-            (style.fontSize ?? 40) *
-            PREVIEW_SCALE;
-
-
         const scale =
-            style.scale ??
-            1;
+            style.scale ?? 1;
 
 
-        const align =
-            style.align ??
-            "center";
-
-
-        const x =
-            (style.x ?? 330) *
-            PREVIEW_SCALE;
-
-
-        const y =
-            (style.y ?? 180) *
-            PREVIEW_SCALE;
-
-
-        const lineWidth =
-            getLineWidth(
-                words,
-                fontSize
+        const textStyle =
+            buildTextStyle(
+                style
             );
 
 
-        let startX = 0;
+        // ====================================================
+        // WORD WIDTHS
+        // ====================================================
+
+        const wordWidths =
+            words.map(
+
+                word =>
+
+                    getWordWidth(
+                        word,
+                        scale
+                    )
+
+            );
+
+
+        const gap =
+            WORD_GAP *
+            PREVIEW_SCALE *
+            scale;
+
+
+        // ====================================================
+        // TOTAL LINE WIDTH
+        //
+        // width1 + gap + width2 + gap + width3
+        // ====================================================
+
+        const totalWidth =
+            wordWidths.reduce(
+
+                (
+                    total,
+                    wordWidth
+                ) =>
+
+                    total +
+                    wordWidth,
+
+                0
+
+            )
+            +
+            Math.max(
+                0,
+                words.length - 1
+            )
+            *
+            gap;
+
+
+        // ====================================================
+        // BASE X
+        //
+        // style.x là tọa độ Preview.
+        // ====================================================
+
+        const centerX =
+            (
+                style.x ??
+                330
+            )
+            *
+            PREVIEW_SCALE;
+
+
+        let startX =
+            centerX;
 
 
         if (
-            align === "center"
+            style.align === "center"
         ) {
 
             startX =
-                -lineWidth / 2;
+                centerX -
+                totalWidth / 2;
 
         }
 
         else if (
-            align === "right"
+            style.align === "right"
         ) {
 
             startX =
-                -lineWidth;
+                centerX -
+                totalWidth;
 
         }
 
 
-        let wordsSvg = "";
+        // ====================================================
+        // Y
+        // ====================================================
+
+        const y =
+            (
+                style.y ??
+                180
+            )
+            *
+            PREVIEW_SCALE;
 
 
-        let offsetX =
+        // ====================================================
+        // FONT
+        // ====================================================
+
+        const fontFamily =
+            escapeXml(
+                style.fontFamily ??
+                "Arial"
+            );
+
+
+        // ====================================================
+        // BUILD WORDS
+        // ====================================================
+
+        let currentX =
             startX;
 
 
         for (
-            const word of words
+            let i = 0;
+            i < words.length;
+            i++
         ) {
 
-            const result =
-                buildWordSvg(
+            const word =
+                words[i];
+
+
+            const wordWidth =
+                wordWidths[i];
+
+
+            const text =
+                word.word ?? "";
+
+
+            const safeText =
+                escapeXml(
+                    text
+                );
+
+
+            const percent =
+                getWordPercent(
 
                     word,
 
-                    style,
-
-                    currentTime,
-
-                    offsetX,
-
-                    fontSize
+                    currentTime
 
                 );
 
 
-            wordsSvg +=
-                result.svg;
+            // =================================================
+            // WORD ID
+            // =================================================
+
+            const safeWordId =
+                makeSvgId(
+
+                    word.id,
+
+                    `word-${i}`
+
+                );
 
 
-            offsetX +=
-                result.width;
+            // =================================================
+            // NORMAL TEXT
+            // =================================================
+
+            const baseText = `
+
+<text
+    x="${currentX}"
+    y="${y}"
+    dominant-baseline="middle"
+    text-anchor="start"
+    font-family="${fontFamily}"
+    font-size="${textStyle.fontSize}px"
+    font-weight="700"
+    fill="${escapeXml(
+        style.color ??
+        "#ffffff"
+    )}"
+    ${textStyle.stroke}
+    ${textStyle.filter}
+>
+    ${safeText}
+</text>
+
+`;
+
+
+            // =================================================
+            // ACTIVE TEXT
+            //
+            // 0%:
+            // Không render.
+            //
+            // 100%:
+            // Full active.
+            //
+            // Partial:
+            // clipPath bằng pixel thật.
+            // =================================================
+
+            let activeText =
+                "";
+
+
+            if (
+                percent >= 100
+            ) {
+
+                activeText = `
+
+<text
+    x="${currentX}"
+    y="${y}"
+    dominant-baseline="middle"
+    text-anchor="start"
+    font-family="${fontFamily}"
+    font-size="${textStyle.fontSize}px"
+    font-weight="700"
+    fill="${escapeXml(
+        style.activeColor ??
+        "#00ff66"
+    )}"
+    ${textStyle.stroke}
+    ${textStyle.filter}
+>
+    ${safeText}
+</text>
+
+`;
+
+            }
+
+            else if (
+                percent > 0 &&
+                wordWidth > 0
+            ) {
+
+                // =============================================
+                // CLIP WIDTH
+                //
+                // Không dùng objectBoundingBox.
+                //
+                // Đây là tọa độ SVG thật.
+                // =============================================
+
+                const clipWidth =
+                    wordWidth *
+                    (
+                        percent /
+                        100
+                    );
+
+
+                const clipId =
+                    `clip-${safeWordId}-${i}-${Math.round(
+                        percent * 100
+                    )}`;
+
+
+                defs += `
+
+<clipPath
+    id="${clipId}"
+    clipPathUnits="userSpaceOnUse"
+>
+
+    <rect
+        x="${currentX}"
+        y="${y - textStyle.fontSize}"
+        width="${clipWidth}"
+        height="${textStyle.fontSize * 2}"
+    />
+
+</clipPath>
+
+`;
+
+
+                activeText = `
+
+<text
+    x="${currentX}"
+    y="${y}"
+    dominant-baseline="middle"
+    text-anchor="start"
+    font-family="${fontFamily}"
+    font-size="${textStyle.fontSize}px"
+    font-weight="700"
+    fill="${escapeXml(
+        style.activeColor ??
+        "#00ff66"
+    )}"
+    clip-path="url(#${clipId})"
+    ${textStyle.stroke}
+    ${textStyle.filter}
+>
+    ${safeText}
+</text>
+
+`;
+
+            }
+
+
+            // =================================================
+            // WORD
+            // =================================================
+
+            content += `
+
+<g>
+
+    ${baseText}
+
+    ${activeText}
+
+</g>
+
+`;
+
+
+            // =================================================
+            // NEXT WORD
+            //
+            // width thật + GAP
+            // =================================================
+
+            currentX +=
+                wordWidth;
+
+
+            if (
+                i <
+                words.length - 1
+            ) {
+
+                currentX +=
+                    gap;
+
+            }
 
         }
-
-
-        content += `
-<g
-    transform="translate(${x} ${y}) scale(${scale})"
->
-    ${wordsSvg}
-</g>
-`;
 
     }
 
 
+    // ========================================================
+    // SVG
+    // ========================================================
+
     return `
+
 <svg
     xmlns="http://www.w3.org/2000/svg"
     width="${width}"
     height="${height}"
     viewBox="0 0 ${width} ${height}"
 >
+
     <defs>
+
+        <!-- ================================================
+             SHADOW
+        ================================================= -->
 
         <filter
             id="shadow"
@@ -761,11 +1190,20 @@ function buildSvgFrame(
 
         </filter>
 
+
+        <!-- ================================================
+             WORD CLIPS
+        ================================================= -->
+
+        ${defs}
+
     </defs>
+
 
     ${content}
 
 </svg>
+
 `;
 
 }
@@ -775,26 +1213,36 @@ function buildSvgFrame(
 // FFMPEG PATH
 // ============================================================
 
-// ============================================================
-// FFMPEG PATH
-// ============================================================
 function findFfmpeg() {
 
-    const ffmpeg = path.join(
-        app.getPath("userData"),
-        "tools",
-        "ffmpeg",
-        "bin",
-        "ffmpeg.exe"
-    );
+    const ffmpeg =
+        path.join(
+
+            app.getPath(
+                "userData"
+            ),
+
+            "tools",
+
+            "ffmpeg",
+
+            "bin",
+
+            "ffmpeg.exe"
+
+        );
+
 
     console.log(
         "[FFmpeg] Path:",
         ffmpeg
     );
 
+
     return ffmpeg;
+
 }
+
 
 // ============================================================
 // RUN FFMPEG
@@ -950,6 +1398,7 @@ function runFfmpeg(
 
 }
 
+
 // ============================================================
 // SUPABASE AUTH
 // ============================================================
@@ -957,39 +1406,61 @@ function runFfmpeg(
 const SUPABASE_URL =
     "https://iidgutuqgiynvacppwlq.supabase.co";
 
+
 const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpZGd1dHVxZ2l5bnZhY3Bwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNzE3MDQsImV4cCI6MjEwMjc0NzcwNH0.0fpKn0q9Eu-YQCWJPErQ_SSUwT1bBFlLE0jM9mHzmg0";
 
+// ============================================================
+// VERIFY SUPABASE USER
+// ============================================================
+
 async function verifySupabaseUser(
+
     accessToken: string
+
 ) {
 
-    if (!accessToken) {
+    if (
+        !accessToken
+    ) {
+
         throw new Error(
             "Bạn phải đăng nhập trước khi export."
         );
+
     }
+
 
     try {
 
         const response =
             await fetch(
+
                 `${SUPABASE_URL}/auth/v1/user`,
+
                 {
-                    method: "GET",
+
+                    method:
+                        "GET",
 
                     headers: {
+
                         Authorization:
                             `Bearer ${accessToken}`,
 
                         apikey:
                             SUPABASE_ANON_KEY,
+
                     },
+
                 }
+
             );
 
 
-        if (!response.ok) {
+        if (
+            !response.ok
+        ) {
 
             throw new Error(
                 "Phiên đăng nhập không hợp lệ hoặc đã hết hạn."
@@ -1002,7 +1473,9 @@ async function verifySupabaseUser(
             await response.json();
 
 
-        if (!user?.id) {
+        if (
+            !user?.id
+        ) {
 
             throw new Error(
                 "Không xác định được tài khoản đăng nhập."
@@ -1014,8 +1487,13 @@ async function verifySupabaseUser(
         console.log(
             "[AUTH] Export user:",
             {
-                id: user.id,
-                email: user.email,
+
+                id:
+                    user.id,
+
+                email:
+                    user.email,
+
             }
         );
 
@@ -1024,57 +1502,78 @@ async function verifySupabaseUser(
 
     }
 
-    catch (error) {
-
-    console.error(
-        "[AUTH] Verify failed:",
+    catch (
         error
-    );
+    ) {
 
-    if (error instanceof Error) {
-        throw error;
+        console.error(
+            "[AUTH] Verify failed:",
+            error
+        );
+
+
+        if (
+            error instanceof Error
+        ) {
+
+            throw error;
+
+        }
+
+
+        throw new Error(
+            "Không thể xác thực tài khoản."
+        );
+
     }
 
-    throw new Error(
-        "Không thể xác thực tài khoản."
-    );
-
 }
 
-}
+
 // ============================================================
 // REGISTER IPC
 // ============================================================
 
 export function registerExportIPC() {
 
-ipcMain.handle(
-    "export:video",
+    ipcMain.handle(
 
-    async (
-        event,
-        data: ExportData
-    ) => {
+        "export:video",
 
-        // =================================================
-        // AUTHENTICATION
-        // =================================================
+        async (
 
-        const user =
-            await verifySupabaseUser(
-                data.accessToken ?? ""
+            event,
+
+            data: ExportData
+
+        ) => {
+
+            // =================================================
+            // AUTH
+            // =================================================
+
+            const user =
+                await verifySupabaseUser(
+
+                    data.accessToken ??
+                    ""
+
+                );
+
+
+            console.log(
+                "[EXPORT] Authenticated:",
+                user.email
             );
 
 
-        console.log(
-            "[EXPORT] Authenticated:",
-            user.email
-        );
+            // =================================================
+            // SETTINGS
+            // =================================================
 
-
-        const width =
-            data.width ??
-            CANVAS_WIDTH;
+            const width =
+                data.width ??
+                CANVAS_WIDTH;
 
 
             const height =
@@ -1089,8 +1588,12 @@ ipcMain.handle(
 
             const duration =
                 Math.max(
+
                     0,
-                    data.duration ?? 0
+
+                    data.duration ??
+                    0
+
                 );
 
 
@@ -1107,7 +1610,6 @@ ipcMain.handle(
                 );
 
             }
-
 
 
             if (
@@ -1143,7 +1645,9 @@ ipcMain.handle(
             catch {
 
                 throw new Error(
+
                     `Không tìm thấy video:\n${data.videoFile}`
+
                 );
 
             }
@@ -1246,8 +1750,10 @@ ipcMain.handle(
                 frameDir,
 
                 {
+
                     recursive:
                         true,
+
                 }
 
             );
@@ -1256,7 +1762,33 @@ ipcMain.handle(
             try {
 
                 // =============================================
-                // 1. GENERATE TRANSPARENT LYRIC FRAMES
+                // 1. MEASURE FONT
+                //
+                // Đây là bước mới.
+                //
+                // Chromium Canvas đo mỗi word bằng font thật.
+                // =============================================
+
+                console.log(
+                    "[EXPORT] Measuring words with Chromium..."
+                );
+
+
+                const measuredLyrics =
+                    await prepareMeasuredLyrics(
+
+                        data.lyrics
+
+                    );
+
+
+                console.log(
+                    "[EXPORT] Font measurement complete."
+                );
+
+
+                // =============================================
+                // 2. GENERATE FRAMES
                 // =============================================
 
                 const totalFrames =
@@ -1266,7 +1798,7 @@ ipcMain.handle(
 
 
                 console.log(
-                    "Generating frames:",
+                    "[EXPORT] Generating frames:",
                     totalFrames
                 );
 
@@ -1288,7 +1820,7 @@ ipcMain.handle(
                     const svg =
                         buildSvgFrame(
 
-                            data.lyrics,
+                            measuredLyrics,
 
                             currentTime,
 
@@ -1315,9 +1847,15 @@ ipcMain.handle(
 
 
                     await sharp(
-                        Buffer.from(svg)
+
+                        Buffer.from(
+                            svg
+                        )
+
                     )
+
                         .png()
+
                         .toFile(
                             framePath
                         );
@@ -1337,7 +1875,9 @@ ipcMain.handle(
                                 (
                                     (frame + 1) /
                                     totalFrames
-                                ) * 50,
+                                )
+                                *
+                                50,
 
                             current:
                                 frame + 1,
@@ -1353,11 +1893,7 @@ ipcMain.handle(
 
 
                 // =============================================
-                // 2. FFMPEG
-                //
-                // INPUT 0 = VIDEO BACKGROUND
-                // INPUT 1 = AUDIO
-                // INPUT 2 = TRANSPARENT LYRIC FRAMES
+                // 3. FFMPEG
                 // =============================================
 
                 const inputPattern =
@@ -1371,172 +1907,162 @@ ipcMain.handle(
 
 
                 console.log(
-                    "Export video:",
+                    "[EXPORT] Video:",
                     data.videoFile
                 );
 
 
                 console.log(
-                    "Export output:",
+                    "[EXPORT] Output:",
                     outputPath
                 );
 
 
-                /*
-                 * Video:
-                 *
-                 * -stream_loop -1
-                 *
-                 * => video tự lặp nếu
-                 *    ngắn hơn audio.
-                 *
-                 *
-                 * Audio:
-                 *
-                 * => audio riêng của project.
-                 *
-                 *
-                 * Lyrics:
-                 *
-                 * => transparent PNG sequence.
-                 */
+                await runFfmpeg(
+
+                    [
+
+                        "-y",
 
 
-            await runFfmpeg(
+                        // =====================================
+                        // VIDEO BACKGROUND
+                        // =====================================
 
-    [
+                        "-stream_loop",
+                        "-1",
 
-        "-y",
-
-
-        // =====================================
-        // VIDEO BACKGROUND
-        // =====================================
-
-        "-stream_loop",
-        "-1",
-
-        "-i",
-        data.videoFile,
+                        "-i",
+                        data.videoFile,
 
 
-        // =====================================
-        // LYRIC FRAMES
-        // =====================================
+                        // =====================================
+                        // LYRIC FRAMES
+                        // =====================================
 
-        "-framerate",
-        String(fps),
+                        "-framerate",
+                        String(fps),
 
-        "-i",
-        inputPattern,
-
-
-        // =====================================
-        // FILTER
-        // =====================================
-
-        "-filter_complex",
-
-        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
-
-        `[1:v]format=rgba[lyrics];` +
-
-        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
+                        "-i",
+                        inputPattern,
 
 
-        // =====================================
-        // VIDEO
-        // =====================================
+                        // =====================================
+                        // FILTER
+                        // =====================================
 
-        "-map",
-        "[outv]",
+                        "-filter_complex",
 
+                        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
 
-        // =====================================
-        // KHÔNG AUDIO
-        // =====================================
+                        `[1:v]format=rgba[lyrics];` +
 
-        "-an",
+                        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
 
 
-        // =====================================
-        // VIDEO CODEC
-        // =====================================
+                        // =====================================
+                        // VIDEO
+                        // =====================================
 
-        "-c:v",
-        "libx264",
-
-        "-preset",
-        "medium",
-
-        "-crf",
-        "18",
-
-        "-pix_fmt",
-        "yuv420p",
+                        "-map",
+                        "[outv]",
 
 
-        // =====================================
-        // DURATION
-        // =====================================
+                        // =====================================
+                        // NO AUDIO
+                        // =====================================
 
-        "-t",
-        String(duration),
-
-
-        // =====================================
-        // MOV / MP4
-        // =====================================
-
-        "-movflags",
-        "+faststart",
+                        "-an",
 
 
-        outputPath,
+                        // =====================================
+                        // CODEC
+                        // =====================================
 
-    ],
+                        "-c:v",
+                        "libx264",
 
+                        "-preset",
+                        "medium",
 
-    time => {
+                        "-crf",
+                        "18",
 
-        const progress =
-            50 +
-
-            clamp(
-
-                (
-                    time /
-                    duration
-                ) * 50,
-
-                0,
-                50
-
-            );
+                        "-pix_fmt",
+                        "yuv420p",
 
 
-        event.sender.send(
+                        // =====================================
+                        // FPS
+                        // =====================================
 
-            "export:progress",
+                        "-r",
+                        String(fps),
 
-            {
 
-                stage:
-                    "ffmpeg",
+                        // =====================================
+                        // DURATION
+                        // =====================================
 
-                progress,
+                        "-t",
+                        String(duration),
 
-                time,
 
-                duration,
+                        // =====================================
+                        // MP4
+                        // =====================================
 
-            }
+                        "-movflags",
+                        "+faststart",
 
-        );
 
-    }
+                        outputPath,
 
-);
+                    ],
+
+
+                    time => {
+
+                        const progress =
+                            50 +
+
+                            clamp(
+
+                                (
+                                    time /
+                                    duration
+                                )
+                                *
+                                50,
+
+                                0,
+                                50
+
+                            );
+
+
+                        event.sender.send(
+
+                            "export:progress",
+
+                            {
+
+                                stage:
+                                    "ffmpeg",
+
+                                progress,
+
+                                time,
+
+                                duration,
+
+                            }
+
+                        );
+
+                    }
+
+                );
 
 
                 // =============================================
@@ -1561,7 +2087,7 @@ ipcMain.handle(
 
 
                 console.log(
-                    "EXPORT SUCCESS:",
+                    "[EXPORT] SUCCESS:",
                     outputPath
                 );
 
@@ -1579,6 +2105,10 @@ ipcMain.handle(
 
 
             finally {
+
+                // =============================================
+                // CLEAN TEMP FRAMES
+                // =============================================
 
                 await fs.rm(
 

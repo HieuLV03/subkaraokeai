@@ -38,7 +38,7 @@ export default function NewProjectPage() {
 
 
   // ============================================================
-  // MANUAL KARAOKE
+  // MANUAL VIDEO KARAOKE
   // ============================================================
 
   const handleManualProject = () => {
@@ -48,6 +48,21 @@ export default function NewProjectPage() {
     );
 
     navigate("/project/manual");
+
+  };
+
+
+  // ============================================================
+  // MANUAL IMAGE KARAOKE
+  // ============================================================
+
+  const handleManualImageProject = () => {
+
+    createProject(
+      "New Image Karaoke Project"
+    );
+
+    navigate("/project/manual-image");
 
   };
 
@@ -240,7 +255,7 @@ export default function NewProjectPage() {
 
 
           {/* =================================================
-              MANUAL KARAOKE
+              MANUAL VIDEO KARAOKE
           ================================================= */}
 
           <button
@@ -285,6 +300,54 @@ export default function NewProjectPage() {
           </button>
 
 
+          {/* =================================================
+              MANUAL IMAGE KARAOKE
+          ================================================= */}
+
+          <button
+            className="project-option-card image-option"
+            onClick={
+              handleManualImageProject
+            }
+          >
+
+            <div className="project-option-icon">
+              🖼️
+            </div>
+
+
+            <div className="project-option-content">
+
+              <h3>
+                Image Karaoke
+              </h3>
+
+              <p>
+                Use a video as the timing and audio source,
+                while using your own image as the karaoke
+                background.
+              </p>
+
+              <span className="project-option-flow">
+
+                Import Video
+                {" → "}
+                Import Image
+                {" → "}
+                Editor
+
+              </span>
+
+            </div>
+
+
+            <div className="project-option-arrow">
+              →
+            </div>
+
+          </button>
+
+
         </div>
 
 
@@ -295,8 +358,8 @@ export default function NewProjectPage() {
         <div className="new-project-info">
 
           <p>
-            💡 You can choose AI or Manual mode for each
-            project.
+            💡 You can choose AI, Manual Video or Image
+            Karaoke mode for each project.
           </p>
 
         </div>

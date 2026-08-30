@@ -1,3 +1,4 @@
+
 import { create } from "zustand";
 
 import {
@@ -14,6 +15,8 @@ interface ProjectState {
 
   setVideoFile: (videoFile: string) => void;
 
+  setImageFile: (imageFile: string) => void;
+
   setLyrics: (lyrics: LyricLine[]) => void;
 }
 
@@ -27,15 +30,31 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
         name,
 
+        // ======================================================
+        // MEDIA
+        // ======================================================
+
         audioFile: null,
 
+        // Video dùng làm nguồn nghe / timing
         videoFile: null,
+
+        // Image dùng làm background cho Image Project
+        imageFile: null,
+
+        // ======================================================
+        // AI / KARAOKE
+        // ======================================================
 
         vocalFile: null,
 
         instrumentalFile: null,
 
         lyricFile: null,
+
+        // ======================================================
+        // OUTPUT
+        // ======================================================
 
         outputFolder: null,
 
@@ -49,9 +68,16 @@ export const useProjectStore = create<ProjectState>((set) => ({
       },
     }),
 
+  // ============================================================
+  // AUDIO
+  // ============================================================
+
   setAudioFile: (audioFile) =>
     set((state) => {
-      if (!state.project) return state;
+
+      if (!state.project) {
+        return state;
+      }
 
       return {
         project: {
@@ -64,9 +90,17 @@ export const useProjectStore = create<ProjectState>((set) => ({
       };
     }),
 
+  // ============================================================
+  // VIDEO
+  // Video dùng làm nguồn nghe / timing
+  // ============================================================
+
   setVideoFile: (videoFile) =>
     set((state) => {
-      if (!state.project) return state;
+
+      if (!state.project) {
+        return state;
+      }
 
       return {
         project: {
@@ -79,9 +113,39 @@ export const useProjectStore = create<ProjectState>((set) => ({
       };
     }),
 
+  // ============================================================
+  // IMAGE
+  // Image dùng làm background
+  // ============================================================
+
+  setImageFile: (imageFile) =>
+    set((state) => {
+
+      if (!state.project) {
+        return state;
+      }
+
+      return {
+        project: {
+          ...state.project,
+
+          imageFile,
+
+          updatedAt: new Date(),
+        },
+      };
+    }),
+
+  // ============================================================
+  // LYRICS
+  // ============================================================
+
   setLyrics: (lyrics) =>
     set((state) => {
-      if (!state.project) return state;
+
+      if (!state.project) {
+        return state;
+      }
 
       return {
         project: {

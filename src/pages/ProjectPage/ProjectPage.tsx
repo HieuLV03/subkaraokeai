@@ -140,7 +140,7 @@ export default function ProjectPage() {
 
   const handleBack = () => {
 
-    navigate("/");
+    navigate("/new-project");
 
   };
 

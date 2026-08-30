@@ -23,6 +23,7 @@ import {
 } from "@/listener/ai.listener";
 import NewProjectPage from "@/pages/NewProjectPage/NewProjectPage";
 import ManualProjectPage from "@/pages/ManualProjectPage/ManualProjectPage";
+import ManualImageProjectPage from "@/pages/ManualImageProjectPage/ManualImageProjectPage";
 
 
 export default function App() {
@@ -83,6 +84,12 @@ export default function App() {
   path="/project/manual"
   element={
     <ManualProjectPage />
+  }
+/>
+<Route
+  path="/project/manual-image"
+  element={
+    <ManualImageProjectPage />
   }
 />
           <Route
