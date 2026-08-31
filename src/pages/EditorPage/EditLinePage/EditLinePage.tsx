@@ -146,33 +146,64 @@ const startTiming = useLyricsStore(
             })
         );
     };
-// ============================
+// ============================================================
 // NEW TEXT
-// ============================
+// Tạo line mới theo đúng cấu trúc LyricLine của AI
+// ============================================================
+
 const addNewLine = () => {
+
     const newId = crypto.randomUUID();
 
     updateLyrics((old) => {
-        // Nếu đã có line thì đặt line mới
-        // ngay sau line cuối cùng
-        const lastLine = old[old.length - 1];
+
+        const lastLine =
+            old.length > 0
+                ? old[old.length - 1]
+                : null;
+
+        // ====================================================
+        // TIME BAN ĐẦU
+        // ====================================================
+
+        const start =
+            lastLine
+                ? lastLine.end
+                : 0;
+
+        const end =
+            start;
+
+
+        // ====================================================
+        // TẠO LINE
+        // ====================================================
 
         const newLine = {
+
             id: newId,
+
             text: "",
-            start: lastLine ? lastLine.end : 0,
-            end: lastLine ? lastLine.end : 0,
+
+            start,
+
+            end,
+
             words: [],
+
         };
+
 
         return [
             ...old,
             newLine,
         ];
+
     });
 
-    // Cho textarea mới tự focus
+
     setEditingId(newId);
+
 };
     return (
         <div className="edit-line-page">
@@ -231,57 +262,114 @@ const addNewLine = () => {
             el.style.height = `${el.scrollHeight}px`;
         }
     }}
-    onChange={(e) => {
-        const textarea = e.currentTarget;
-        const value = textarea.value;
+onChange={(e) => {
 
-        autoResizeTextarea(textarea);
+    const textarea = e.currentTarget;
 
-        updateLyrics((old) =>
-            old.map((item) => {
-                if (item.id !== line.id)
-                    return item;
+    const value = textarea.value;
 
-                const texts = value
+    autoResizeTextarea(textarea);
+
+
+    updateLyrics((old) => {
+
+        return old.map((item) => {
+
+            if (item.id !== line.id) {
+                return item;
+            }
+
+
+            // =================================================
+            // TEXT -> WORDS
+            // =================================================
+
+            const texts =
+                value
                     .trim()
                     .split(/\s+/)
                     .filter(Boolean);
 
-                const words = texts.map(
-                    (text, index) => {
-                        const oldWord =
-                            item.words[index];
+
+            const words = texts.map(
+                (text, index) => {
+
+                    const oldWord =
+                        item.words[index];
+
+
+                    // =========================================
+                    // WORD ĐÃ CÓ
+                    // Giữ nguyên toàn bộ timing + synced
+                    // =========================================
+
+                    if (oldWord) {
 
                         return {
-                            id:
-                                oldWord?.id ??
-                                crypto.randomUUID(),
+
+                            ...oldWord,
 
                             word: text,
 
-                            start:
-                                oldWord?.start ??
-                                item.start,
-
-                            end:
-                                oldWord?.end ??
-                                item.end,
-
-                            synced:
-                                oldWord?.synced ??
-                                false,
                         };
-                    }
-                );
 
-                return {
-                    ...item,
-                    text: value,
-                    words,
-                };
-            })
-        );
-    }}
+                    }
+
+
+                    // =========================================
+                    // WORD MỚI
+                    // Timing mặc định = timing của LINE
+                    // =========================================
+
+                    return {
+
+                        id:
+                            crypto.randomUUID(),
+
+                        word:
+                            text,
+
+                        start:
+                            item.start,
+
+                        end:
+                            item.end,
+
+                        synced:
+                            false,
+
+                    };
+
+                }
+            );
+
+
+            // =================================================
+            // RETURN LINE
+            // =================================================
+
+            return {
+
+                ...item,
+
+                text:
+                    value,
+
+                start:
+                    item.start,
+
+                end:
+                    item.end,
+
+                words,
+
+            };
+
+        });
+
+    });
+
+}}
     onFocus={(e) => {
         setEditingId(line.id);
         autoResizeTextarea(e.currentTarget);
