@@ -88,6 +88,7 @@ type ExportData = {
     duration: number;
 
     videoFile: string;
+    imageFile?: string;
 
     width?: number;
 
@@ -1584,7 +1585,7 @@ export function registerExportIPC() {
 
             const fps =
                 data.fps ??
-                30;
+                21;
 
 
             const duration =
@@ -1602,57 +1603,115 @@ export function registerExportIPC() {
             // VALIDATE
             // =================================================
 
-            if (
-                !data.videoFile
-            ) {
+      // =================================================
+// VALIDATE BACKGROUND
+// =================================================
 
-                throw new Error(
-                    "Chưa có video nền."
-                );
-
-            }
+const isImageMode =
+    !!data.imageFile;
 
 
-            if (
-                !data.lyrics?.length
-            ) {
+if (
+    !isImageMode &&
+    !data.videoFile
+) {
 
-                throw new Error(
-                    "Không có lyrics để export."
-                );
+    throw new Error(
+        "Chưa có video hoặc ảnh nền."
+    );
 
-            }
-
-
-            if (
-                duration <= 0
-            ) {
-
-                throw new Error(
-                    "Duration không hợp lệ."
-                );
-
-            }
+}
 
 
-            try {
+// =================================================
+// VALIDATE LYRICS
+// =================================================
 
-                await fs.access(
-                    data.videoFile
-                );
+if (
+    !data.lyrics?.length
+) {
 
-            }
+    throw new Error(
+        "Không có lyrics để export."
+    );
 
-            catch {
+}
 
-                throw new Error(
 
-                    `Không tìm thấy video:\n${data.videoFile}`
+// =================================================
+// VALIDATE DURATION
+// =================================================
 
-                );
+if (
+    duration <= 0
+) {
 
-            }
+    throw new Error(
+        "Duration không hợp lệ."
+    );
 
+}
+
+
+// =================================================
+// VALIDATE IMAGE
+// =================================================
+
+if (
+    isImageMode
+) {
+
+    try {
+
+        await fs.access(
+            data.imageFile!
+        );
+
+    }
+
+    catch {
+
+        throw new Error(
+
+            `Không tìm thấy ảnh nền:\n${data.imageFile}`
+
+        );
+
+    }
+
+}
+
+
+// =================================================
+// VALIDATE VIDEO
+//
+// Image Mode vẫn có thể có video timing.
+// Video Mode bắt buộc phải có video.
+// =================================================
+
+if (
+    data.videoFile
+) {
+
+    try {
+
+        await fs.access(
+            data.videoFile
+        );
+
+    }
+
+    catch {
+
+        throw new Error(
+
+            `Không tìm thấy video:\n${data.videoFile}`
+
+        );
+
+    }
+
+}
 
             // =================================================
             // SAVE DIALOG
@@ -1897,174 +1956,393 @@ export function registerExportIPC() {
                 // 3. FFMPEG
                 // =============================================
 
-                const inputPattern =
-                    path.join(
+            // =============================================
+// 3. FFMPEG
+// =============================================
 
-                        frameDir,
+const inputPattern =
+    path.join(
+        frameDir,
+        "frame-%07d.png"
+    );
 
-                        "frame-%07d.png"
 
-                    );
+// ============================================================
+// MODE
+//
+// IMAGE MODE:
+// imageFile có → ảnh là background.
+// videoFile chỉ dùng làm audio/timing source.
+//
+// VIDEO MODE:
+// imageFile không có → videoFile là background.
+// ============================================================
 
+const isImageMode =
+    !!data.imageFile;
 
-                console.log(
-                    "[EXPORT] Video:",
-                    data.videoFile
-                );
 
+console.log(
+    "[EXPORT] ==============================="
+);
 
-                console.log(
-                    "[EXPORT] Output:",
-                    outputPath
-                );
+console.log(
+    "[EXPORT] MODE:",
+    isImageMode
+        ? "IMAGE BACKGROUND"
+        : "VIDEO BACKGROUND"
+);
 
+console.log(
+    "[EXPORT] Video:",
+    data.videoFile
+);
 
-                await runFfmpeg(
+console.log(
+    "[EXPORT] Image:",
+    data.imageFile
+);
 
-                    [
+console.log(
+    "[EXPORT] Output:",
+    outputPath
+);
 
-                        "-y",
+console.log(
+    "[EXPORT] ==============================="
+);
 
 
-                        // =====================================
-                        // VIDEO BACKGROUND
-                        // =====================================
+let ffmpegArgs: string[];
 
-                        "-stream_loop",
-                        "-1",
 
-                        "-i",
-                        data.videoFile,
+// ============================================================
+// IMAGE MODE
+//
+// imageFile = background
+//
+// videoFile = audio source
+//
+// Video KHÔNG được render.
+// ============================================================
 
+if (isImageMode) {
 
-                        // =====================================
-                        // LYRIC FRAMES
-                        // =====================================
+    ffmpegArgs = [
 
-                        "-framerate",
-                        String(fps),
+        "-y",
 
-                        "-i",
-                        inputPattern,
 
+        // ==========================================
+        // INPUT 0
+        // STATIC IMAGE BACKGROUND
+        // ==========================================
 
-                        // =====================================
-                        // FILTER
-                        // =====================================
+        "-loop",
+        "1",
 
-                        "-filter_complex",
+        "-i",
+        data.imageFile!,
 
-                        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
 
-                        `[1:v]format=rgba[lyrics];` +
+        // ==========================================
+        // INPUT 1
+        // LYRIC PNG FRAMES
+        // ==========================================
 
-                        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
+        "-framerate",
+        String(fps),
 
+        "-i",
+        inputPattern,
 
-                        // =====================================
-                        // VIDEO
-                        // =====================================
 
-                        "-map",
-                        "[outv]",
+        // ==========================================
+        // INPUT 2
+        // TIMING VIDEO / AUDIO SOURCE
+        //
+        // Video này KHÔNG dùng làm background.
+        // Chỉ lấy audio.
+        // ==========================================
 
+        "-stream_loop",
+        "-1",
 
-                        // =====================================
-                        // NO AUDIO
-                        // =====================================
+        "-i",
+        data.videoFile,
 
-                        "-an",
 
+        // ==========================================
+        // FILTER
+        // ==========================================
 
-                        // =====================================
-                        // CODEC
-                        // =====================================
+        "-filter_complex",
 
-                        "-c:v",
-                        "libx264",
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
 
-                        "-preset",
-                        "medium",
+        `[1:v]format=rgba[lyrics];` +
 
-                        "-crf",
-                        "18",
+        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
 
-                        "-pix_fmt",
-                        "yuv420p",
 
+        // ==========================================
+        // VIDEO OUTPUT
+        // ==========================================
 
-                        // =====================================
-                        // FPS
-                        // =====================================
+        "-map",
+        "[outv]",
 
-                        "-r",
-                        String(fps),
 
+        // ==========================================
+        // AUDIO
+        //
+        // Lấy audio từ video timing.
+        // ==========================================
 
-                        // =====================================
-                        // DURATION
-                        // =====================================
+        "-map",
+        "2:a?",
 
-                        "-t",
-                        String(duration),
 
+        // ==========================================
+        // VIDEO CODEC
+        // ==========================================
 
-                        // =====================================
-                        // MP4
-                        // =====================================
+        "-c:v",
+        "libx264",
 
-                        "-movflags",
-                        "+faststart",
+        "-preset",
+        "medium",
 
+        "-crf",
+        "18",
 
-                        outputPath,
+        "-pix_fmt",
+        "yuv420p",
 
-                    ],
 
+        // ==========================================
+        // AUDIO CODEC
+        // ==========================================
 
-                    time => {
+        "-c:a",
+        "aac",
 
-                        const progress =
-                            50 +
+        "-b:a",
+        "192k",
 
-                            clamp(
 
-                                (
-                                    time /
-                                    duration
-                                )
-                                *
-                                50,
+        // ==========================================
+        // FPS
+        // ==========================================
 
-                                0,
-                                50
+        "-r",
+        String(fps),
 
-                            );
 
+        // ==========================================
+        // DURATION
+        // ==========================================
 
-                        event.sender.send(
+        "-t",
+        String(duration),
 
-                            "export:progress",
 
-                            {
+        // ==========================================
+        // MP4
+        // ==========================================
 
-                                stage:
-                                    "ffmpeg",
+        "-movflags",
+        "+faststart",
 
-                                progress,
 
-                                time,
+        outputPath,
 
-                                duration,
+    ];
 
-                            }
+}
 
-                        );
 
-                    }
+// ============================================================
+// VIDEO MODE
+//
+// videoFile = background
+//
+// imageFile không tồn tại.
+//
+// Giữ nguyên chức năng video nền hiện tại.
+// ============================================================
 
-                );
+else {
 
+    ffmpegArgs = [
+
+        "-y",
+
+
+        // ==========================================
+        // INPUT 0
+        // VIDEO BACKGROUND
+        // ==========================================
+
+        "-stream_loop",
+        "-1",
+
+        "-i",
+        data.videoFile,
+
+
+        // ==========================================
+        // INPUT 1
+        // LYRIC PNG FRAMES
+        // ==========================================
+
+        "-framerate",
+        String(fps),
+
+        "-i",
+        inputPattern,
+
+
+        // ==========================================
+        // FILTER
+        // ==========================================
+
+        "-filter_complex",
+
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[bg];` +
+
+        `[1:v]format=rgba[lyrics];` +
+
+        `[bg][lyrics]overlay=0:0:format=auto[outv]`,
+
+
+        // ==========================================
+        // VIDEO OUTPUT
+        // ==========================================
+
+        "-map",
+        "[outv]",
+
+
+        // ==========================================
+        // AUDIO
+        //
+        // Giữ audio của video nền.
+        // ==========================================
+
+        "-map",
+        "0:a?",
+
+
+        // ==========================================
+        // VIDEO CODEC
+        // ==========================================
+
+        "-c:v",
+        "libx264",
+
+        "-preset",
+        "medium",
+
+        "-crf",
+        "18",
+
+        "-pix_fmt",
+        "yuv420p",
+
+
+        // ==========================================
+        // AUDIO CODEC
+        // ==========================================
+
+        "-c:a",
+        "aac",
+
+        "-b:a",
+        "192k",
+
+
+        // ==========================================
+        // FPS
+        // ==========================================
+
+        "-r",
+        String(fps),
+
+
+        // ==========================================
+        // DURATION
+        // ==========================================
+
+        "-t",
+        String(duration),
+
+
+        // ==========================================
+        // MP4
+        // ==========================================
+
+        "-movflags",
+        "+faststart",
+
+
+        outputPath,
+
+    ];
+
+}
+
+
+// ============================================================
+// RUN FFMPEG
+// ============================================================
+
+await runFfmpeg(
+
+    ffmpegArgs,
+
+    time => {
+
+        const progress =
+            50 +
+
+            clamp(
+
+                (
+                    time /
+                    duration
+                )
+                *
+                50,
+
+                0,
+                50
+
+            );
+
+
+        event.sender.send(
+
+            "export:progress",
+
+            {
+
+                stage:
+                    "ffmpeg",
+
+                progress,
+
+                time,
+
+                duration,
+
+            }
+
+        );
+
+    }
+
+);
 
                 // =============================================
                 // DONE

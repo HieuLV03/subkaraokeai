@@ -124,6 +124,8 @@ const [authChecking, setAuthChecking] =
     const videoFile =
         project?.videoFile;
 
+const imageFile =
+    project?.imageFile;
 
     // =========================================================
     // WORD COUNT
@@ -238,16 +240,15 @@ useEffect(() => {
     };
 
 }, []);
-    const canExport =
-        lyrics.length > 0 &&
+const hasBackground =
+    !!videoFile ||
+    !!imageFile;
 
-        duration > 0 &&
-
-        !!videoFile &&
-
-        !exporting;
-
-
+const canExport =
+    lyrics.length > 0 &&
+    duration > 0 &&
+    hasBackground &&
+    !exporting;
     // =========================================================
     // PROGRESS LISTENER
     // =========================================================
@@ -578,27 +579,44 @@ async function handleExport() {
 
         setOutputPath("");
 
+console.log(
+    "[EXPORT PROJECT]",
+    {
+        userId:
+            currentSession.user.id,
 
-        console.log(
-            "[EXPORT PROJECT]",
-            {
-                userId:
-                    currentSession.user.id,
+        email:
+            currentSession.user.email,
 
-                email:
-                    currentSession.user.email,
+        videoFile,
 
-                videoFile,
+        duration,
 
-                duration,
+        lyrics:
+            lyrics.length,
 
-                lyrics:
-                    lyrics.length,
+        wordCount,
 
-                tokenLength:
-                    currentSession.access_token.length,
-            }
-        );
+        tokenLength:
+            currentSession.access_token.length,
+    }
+);
+
+console.log(
+    "========== EXPORT LYRICS DETAIL =========="
+);
+
+console.log(
+    JSON.stringify(
+        lyrics,
+        null,
+        2
+    )
+);
+
+console.log(
+    "=========================================="
+);
 
 
         // ============================================
@@ -608,13 +626,16 @@ async function handleExport() {
         const result =
             await window.electronAPI.invoke<ExportResult>(
                 "export:video",
-                {
-                    videoFile:
-                        videoFile!,
+           {
+    videoFile:
+        videoFile,
 
-                    lyrics,
+    imageFile:
+        imageFile,
 
-                    duration,
+    lyrics,
+
+    duration,
 
                     width:
                         1920,
@@ -763,24 +784,26 @@ return (
                 {/* VIDEO */}
 
                 <div>
-                    <strong>
-                        Video Background
-                    </strong>
+                   <strong>
+    Background
+</strong>
 
-                    <div
-                        style={{
-                            marginTop: 4,
-                            wordBreak: "break-all",
-                            color: videoFile
-                                ? "#94a3b8"
-                                : "#ef4444",
-                            fontSize: 13,
-                        }}
-                    >
-                        {videoFile
-                            ? videoFile
-                            : "❌ Chưa chọn video"}
-                    </div>
+<div
+    style={{
+        marginTop: 4,
+        wordBreak: "break-all",
+        color: hasBackground
+            ? "#94a3b8"
+            : "#ef4444",
+        fontSize: 13,
+    }}
+>
+    {imageFile
+        ? `🖼️ ${imageFile}`
+        : videoFile
+            ? `🎬 ${videoFile}`
+            : "❌ Chưa chọn background"}
+</div>
                 </div>
 
 
@@ -930,12 +953,11 @@ return (
             {/* =================================================
                 WARNING
             ================================================= */}
-
-            {!videoFile && (
-                <div className="export-message">
-                    ⚠️ Bạn chưa import video nền.
-                </div>
-            )}
+{!hasBackground && (
+    <div className="export-message">
+        ⚠️ Bạn chưa import video hoặc ảnh nền.
+    </div>
+)}
 
 
             {/* =================================================
